@@ -47,10 +47,13 @@ git rebase master                 # 或 git merge master
 | 日期 | 分支 / commit | 定制内容 |
 |------|---------------|----------|
 | 2026-09-26 | master | 初始化二开环境：配置 upstream/origin 双远程、SSH 走 443、新增本指南 |
+| 2026-09-26 | master | 新增一键开发启动脚本 `dev.bat` / `dev.ps1`（根目录，双击即同时启动前后端并打开浏览器） |
 
 ## 6. 本机环境注意事项
 
 - 操作系统：Windows，shell 为 Git Bash，仓库位于 `D:\tjs\tys\AstrBot`
 - 本机代理（Clash 类，fake-ip 模式）会拦截 github.com 的 **22 端口**，SSH 已配置改走 **443 端口**（见 `C:\Users\oyl\.ssh\config`），SSH 认证可用
 - 克隆/拉取公开仓库可直接用 HTTPS；push 依赖 SSH（用户名 lannickytang-lang）
-- 启动方式见上游 `AGENTS.md`：后端 `uv run main.py`（端口 6185），前端 `cd dashboard && pnpm dev`（端口 3000）
+- 启动方式见上游 `AGENTS.md`：后端 `uv run main.py`（端口 6185），前端 `cd dashboard && pnpm dev`（端口 3000，`/api` 自动代理到 6185）
+- **一键启动**：双击根目录 `dev.bat`（或 PowerShell 执行 `.\dev.bat`），自动弹出前后端两个日志窗口，约 20 秒后打开浏览器访问前端。停止服务：关闭对应窗口即可
+- 环境工具链：Python 3.12 / uv / Node 24 / pnpm（已装好；依赖用 `uv sync` 和 `cd dashboard && pnpm install` 安装）
