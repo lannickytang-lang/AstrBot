@@ -50,6 +50,7 @@ git push origin dev
 | 2026-09-26 | master | 初始化二开环境：配置 upstream/origin 双远程、SSH 走 443、新增本指南 |
 | 2026-09-26 | master | 新增一键开发启动脚本 `dev.bat` / `dev.ps1`（根目录，双击即同时启动前后端并打开浏览器） |
 | 2026-09-26 | master, dev | 建立分支模型：master=上游镜像，dev=日常开发主线 |
+| 2026-09-26 | dev | 固化本地构建产物（pnpm 12 lockfile 与 MDI 字体子集再生成），见第 6 节说明 |
 
 ## 6. 本机环境注意事项
 
@@ -59,3 +60,4 @@ git push origin dev
 - 启动方式见上游 `AGENTS.md`：后端 `uv run main.py`（端口 6185），前端 `cd dashboard && pnpm dev`（端口 3000，`/api` 自动代理到 6185）
 - **一键启动**：双击根目录 `dev.bat`（或 PowerShell 执行 `.\dev.bat`），自动弹出前后端两个日志窗口，约 20 秒后打开浏览器访问前端。停止服务：关闭对应窗口即可
 - 环境工具链：Python 3.12 / uv / Node 24 / pnpm（已装好；依赖用 `uv sync` 和 `cd dashboard && pnpm install` 安装）
+- **构建产物提示**：`dashboard/src/assets/mdi-subset/`（前端启动时自动再生成的图标字体）和 `dashboard/pnpm-lock.yaml` 会因本地 pnpm 版本较新而与上游不同，已在 dev 固化。上游同步若在这几个文件冲突，**不要手工合并**，以上游版本为准后运行 `cd dashboard && pnpm install && pnpm dev` 重新生成即可
