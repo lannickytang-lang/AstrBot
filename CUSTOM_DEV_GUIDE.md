@@ -51,6 +51,7 @@ git push origin dev
 | 2026-09-26 | master | 新增一键开发启动脚本 `dev.bat` / `dev.ps1`（根目录，双击即同时启动前后端并打开浏览器） |
 | 2026-09-26 | master, dev | 建立分支模型：master=上游镜像，dev=日常开发主线 |
 | 2026-09-26 | dev | 固化本地构建产物（pnpm 12 lockfile 与 MDI 字体子集再生成），见第 6 节说明 |
+| 2026-09-26 | dev | 配置微信自动回复全链路：DashScope embedding 服务商（dashscope_kb/text-embedding-v4）+ "悦音琴行知识库"（虚构示例，源文档在 `kb_docs/`）+ 人格 `yueyin`（店长助理小悦）+ 唤醒词 `AI`（私聊需 AI 开头才回复，webchat 豁免） |
 
 ## 6. 本机环境注意事项
 
@@ -61,3 +62,9 @@ git push origin dev
 - **一键启动**：双击根目录 `dev.bat`（或 PowerShell 执行 `.\dev.bat`），自动弹出前后端两个日志窗口，约 20 秒后打开浏览器访问前端。停止服务：关闭对应窗口即可
 - 环境工具链：Python 3.12 / uv / Node 24 / pnpm（已装好；依赖用 `uv sync` 和 `cd dashboard && pnpm install` 安装）
 - **构建产物提示**：`dashboard/src/assets/mdi-subset/`（前端启动时自动再生成的图标字体）和 `dashboard/pnpm-lock.yaml` 会因本地 pnpm 版本较新而与上游不同，已在 dev 固化。上游同步若在这几个文件冲突，**不要手工合并**，以上游版本为准后运行 `cd dashboard && pnpm install && pnpm dev` 重新生成即可
+- **知识库自动回复链路**（2026-09-26 配置）：
+  - 知识库"悦音琴行知识库"（4 篇虚构文档 / 24 分块），源文档在 `kb_docs/`；接入真实资料时整理成同样结构的 md/docx/pdf 上传替换
+  - Embedding：DashScope `text-embedding-v4`（来源 id `dashscope_kb`，需保证阿里云百炼账户不欠费）
+  - 人格 `yueyin`（默认人格）：店长助理"小悦"，规则详见人格 system prompt；改话术在 WebUI"人格设定"页
+  - 唤醒词：`platform_settings.friend_message_needs_wake_prefix=true` + `wake_prefix=["AI"]`，即微信私聊只有 AI 开头的消息才触发回复
+  - 微信侧联调：用另一微信号给机器人发 "AI 钢琴课多少钱一节？" 验证
