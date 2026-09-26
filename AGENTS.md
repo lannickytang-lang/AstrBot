@@ -135,3 +135,7 @@ For one-off release candidate branches, delete the release branch after the tag 
 git branch -d release/4.25.0
 git push origin --delete release/4.25.0
 ```
+
+## Local secondary development (customization)
+
+This working copy is a customized fork for local secondary development. Before making any changes, read [CUSTOM_DEV_GUIDE.md](CUSTOM_DEV_GUIDE.md) for the remote layout (`upstream`/`origin`), branch policy, upstream sync workflow, and the log of local customizations. Do not push to `upstream`.
