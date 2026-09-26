@@ -15,8 +15,9 @@
 
 ## 2. 分支与提交约定
 
-- `master`：与上游保持同步的基准分支，只包含上游代码 + 本指南等少量定制文档
-- **定制功能一律在独立分支上开发**（命名如 `feat/xxx`），不要直接改 master
+- `master`：上游镜像分支，只包含上游代码 + 本指南、启动脚本等少量本地定制，**不在这里开发功能**
+- `dev`：**日常开发主分支**。二次开发默认直接在 dev 上进行，工作区平时应停在 dev
+- 大型或试验性功能可从 dev 切出独立分支（命名如 `feat/xxx`），验证完成后再合并回 dev
 - commit 信息遵循上游的 conventional commits 约定（`feat:` / `fix:` / `docs:` 等）
 - 上游 `AGENTS.md` 中的代码规范（ruff 格式化、Google docstring、KISS 原则等）**继续适用**，定制代码也要遵守
 
@@ -25,12 +26,12 @@
 ```bash
 git fetch upstream                # 拉取官方最新代码（不合并）
 git checkout master
-git merge upstream/master         # 合并官方更新
-git push origin master            # 推送到自己的仓库
+git merge upstream/master         # master 吸收官方更新
+git push origin master
 
-# 把更新同步到定制分支：
-git checkout feat/xxx
-git rebase master                 # 或 git merge master
+git checkout dev
+git merge master                  # 把官方更新带入开发主线
+git push origin dev
 ```
 
 **冲突处理原则**：优先保留上游逻辑，再在其之上重新套用本地定制；如果不确定如何取舍，停下来询问用户，不要擅自猜测。定制代码尽量走插件（见下节），正常情况下冲突很少。
@@ -48,6 +49,7 @@ git rebase master                 # 或 git merge master
 |------|---------------|----------|
 | 2026-09-26 | master | 初始化二开环境：配置 upstream/origin 双远程、SSH 走 443、新增本指南 |
 | 2026-09-26 | master | 新增一键开发启动脚本 `dev.bat` / `dev.ps1`（根目录，双击即同时启动前后端并打开浏览器） |
+| 2026-09-26 | master, dev | 建立分支模型：master=上游镜像，dev=日常开发主线 |
 
 ## 6. 本机环境注意事项
 
