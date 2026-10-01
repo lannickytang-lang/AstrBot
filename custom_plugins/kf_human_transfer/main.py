@@ -43,8 +43,8 @@ def _origin_role(origin) -> str:
 @register(
     "astrbot_plugin_kf_human_transfer",
     "yuansheng",
-    "微信客服转人工：关键词/管理台指令转接、人工期间 AI 静默、防回环、超时自动回收、全量聊天记录",
-    "0.2.0",
+    "微信客服转人工：关键词/管理台指令转接、人工期间 AI 静默、防回环、超时自动回收、全量聊天记录（含会话页同步）",
+    "0.2.1",
 )
 class KfHumanTransferPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig | None = None):
@@ -235,6 +235,26 @@ class KfHumanTransferPlugin(Star):
         except Exception as e:
             logger.warning(f"[kf_human_transfer] append chat log failed: {e}")
 
+    async def _append_conv_history(self, customer_id: str, role: str, text: str):
+        """Append one message to the customer's AstrBot conversation so the
+        dashboard chat-history page shows human-phase records too."""
+        if not customer_id:
+            return
+        umo = f"wecom:FriendMessage:{customer_id}"
+        try:
+            cm = self.context.conversation_manager
+            cid = await cm.get_curr_conversation_id(umo)
+            if cid:
+                conv = await cm.get_conversation(umo, cid)
+                history = json.loads(conv.history) if conv and conv.history else []
+            else:
+                cid = await cm.new_conversation(umo)
+                history = []
+            history.append({"role": role, "content": [{"type": "text", "text": text}]})
+            await cm.update_conversation(umo, cid, history)
+        except Exception as e:
+            logger.warning(f"[kf_human_transfer] append conv history failed: {e}")
+
     async def _backfill_chat_log(self):
         """Seed the chat log from WeChat's sync archive (last 3 days).
         Retries until the wecom platform adapter is available."""
@@ -331,14 +351,18 @@ class KfHumanTransferPlugin(Star):
         ts = float(send_time) if send_time else time.time()
         self._append_log(customer_id, _origin_role(origin), text, ts)
 
-        # Anti-loopback: servicer replies / system events must never reach the AI.
+        # Anti-loopback: servicer replies must never reach the AI, but keep
+        # them visible in the dashboard conversation history.
         if origin != ORIGIN_CUSTOMER:
+            await self._append_conv_history(customer_id, "assistant", f"[人工] {text}")
             event.stop_event()
             return
 
-        # Anti-hijack: while a human is servicing, the AI stays silent.
+        # Anti-hijack: while a human is servicing, the AI stays silent; the
+        # customer's message goes to the human and into the history only.
         state = await self._get_state(open_kfid, customer_id)
         if state == STATE_HUMAN:
+            await self._append_conv_history(customer_id, "user", text)
             event.stop_event()
             return
 
@@ -352,6 +376,9 @@ class KfHumanTransferPlugin(Star):
                 guide = str(self.config.get("guide_text", ""))
                 self._append_log(customer_id, "system", "[触发转人工]", time.time())
                 if guide:
+                    await self._append_conv_history(
+                        customer_id, "assistant", f"[系统] {guide}"
+                    )
                     await event.send(MessageChain().message(guide))
             else:
                 logger.warning(

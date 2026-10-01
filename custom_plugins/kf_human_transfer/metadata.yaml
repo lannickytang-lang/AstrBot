@@ -1,4 +1,4 @@
 name: astrbot_plugin_kf_human_transfer
 desc: 微信客服转人工：客户关键词/管理台指令转接店主、人工期间 AI 静默、防回环、超时自动回收
 author: yuansheng
-version: 0.2.0
+version: 0.2.1
