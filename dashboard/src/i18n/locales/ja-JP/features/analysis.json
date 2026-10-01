@@ -32,7 +32,9 @@
     "foot": "チェックした会話のみを分析対象にできます。このプレビューは自分にのみ表示されます",
     "messages": "{n} 件のメッセージ",
     "customer": "顧客",
-    "bot": "Bot"
+    "bot": "Bot",
+    "copyId": "クリックで顧客IDをコピー",
+    "copyIdDone": "顧客IDをコピーしました"
   },
   "actions": {
     "scenario": "分析シナリオ",

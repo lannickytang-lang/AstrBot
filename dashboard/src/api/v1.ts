@@ -1916,6 +1916,13 @@ export interface AnalysisSessionResult {
 }
 
 export const analysisApi = {
+  customerNames(ids: string[]) {
+    return typed<Record<string, { nickname: string; avatar: string }>>(
+      openApiV1.getAnalysisCustomerNames({
+        query: { ids: ids.join(',') },
+      }),
+    );
+  },
   listScenarios() {
     return typed<AnalysisScenario[]>(openApiV1.listAnalysisScenarios());
   },

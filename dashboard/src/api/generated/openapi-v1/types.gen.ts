@@ -3414,6 +3414,19 @@ export type ExportConversationsResponse = (unknown);
 
 export type ExportConversationsError = unknown;
 
+export type GetAnalysisCustomerNamesData = {
+    query: {
+        /**
+         * Comma-separated external customer IDs.
+         */
+        ids: string;
+    };
+};
+
+export type GetAnalysisCustomerNamesResponse = (SuccessEnvelope);
+
+export type GetAnalysisCustomerNamesError = unknown;
+
 export type ListAnalysisScenariosResponse = (SuccessEnvelope);
 
 export type ListAnalysisScenariosError = unknown;

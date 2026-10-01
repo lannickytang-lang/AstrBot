@@ -32,7 +32,9 @@
     "foot": "Check conversations to fine-tune the analysis scope; this preview is private",
     "messages": "{n} messages",
     "customer": "Customer",
-    "bot": "Bot"
+    "bot": "Bot",
+    "copyId": "Click to copy customer ID (used by transfer command)",
+    "copyIdDone": "Customer ID copied"
   },
   "actions": {
     "scenario": "Scenario",

@@ -32,7 +32,9 @@
     "foot": "勾选左侧会话可精确控制分析范围；本预览仅你可见，不影响客户",
     "messages": "{n} 条消息",
     "customer": "客户",
-    "bot": "客服"
+    "bot": "客服",
+    "copyId": "点击复制客户ID（转人工指令使用）",
+    "copyIdDone": "已复制客户ID"
   },
   "actions": {
     "scenario": "分析场景",

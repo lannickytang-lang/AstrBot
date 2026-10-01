@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -65,6 +65,24 @@ async def _run(operation):
         return ok(await run_maybe_async(operation))
     except AnalysisServiceError as exc:
         raise ApiError(str(exc)) from exc
+
+
+@router.get("/analysis/customer-names")
+async def get_customer_names(
+    ids: str = Query(default=""),
+    _auth: AuthContext = Depends(require_data_scope),
+    service: AnalysisService = Depends(get_service),
+):
+    """Resolve WeChat nicknames/avatars for external customer IDs.
+
+    Reads the kf_customer_profile table; missing profiles are backfilled
+    once via the WeChat Work API (best effort, never blocking).
+    """
+    id_list = [item.strip() for item in ids.split(",") if item.strip()]
+    if not id_list:
+        return ok({})
+    names = await service.resolve_customer_names(id_list)
+    return ok(names)
 
 
 @router.get("/analysis/scenarios")

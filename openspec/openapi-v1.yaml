@@ -4457,6 +4457,23 @@ paths:
         "200":
           description: Exported conversation data
 
+  /api/v1/analysis/customer-names:
+    get:
+      tags: [Analysis]
+      summary: Resolve WeChat nicknames for external customer IDs
+      operationId: getAnalysisCustomerNames
+      x-astrbot-scope: data
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated external customer IDs.
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
   /api/v1/analysis/scenarios:
     get:
       tags: [Analysis]

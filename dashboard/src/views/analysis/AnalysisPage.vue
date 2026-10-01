@@ -138,7 +138,27 @@
               />
               <div class="conv-info">
                 <div class="conv-top">
-                  <span class="conv-id">{{ conv.customerId }}</span>
+                  <img
+                    v-if="conv.avatar"
+                    :src="conv.avatar"
+                    class="cust-ava"
+                    referrerpolicy="no-referrer"
+                  />
+                  <span
+                    class="conv-name"
+                    :title="tm('record.copyId')"
+                    @click.stop="copyCustomerId(conv.customerId)"
+                  >
+                    {{ conv.nickname || conv.customerId }}
+                  </span>
+                  <span
+                    v-if="conv.nickname"
+                    class="conv-id mono-link"
+                    :title="tm('record.copyId')"
+                    @click.stop="copyCustomerId(conv.customerId)"
+                  >
+                    {{ shortId(conv.customerId) }}
+                  </span>
                   <span class="conv-msgs">
                     {{ tm('list.messages', { n: conv.messageCount }) }}
                   </span>
@@ -172,7 +192,31 @@
         <v-card class="panel" elevation="0">
           <div class="panel-head">
             <span class="panel-title">{{ tm('record.title') }}</span>
-            <span v-if="picked" class="panel-badge mono">{{ picked.customerId }}</span>
+            <template v-if="picked">
+              <img
+                v-if="picked.avatar"
+                :src="picked.avatar"
+                class="cust-ava"
+                referrerpolicy="no-referrer"
+              />
+              <span
+                class="panel-badge"
+                :title="tm('record.copyId')"
+                style="cursor: pointer"
+                @click="copyCustomerId(picked.customerId)"
+              >
+                {{ picked.nickname || picked.customerId }}
+              </span>
+              <span
+                v-if="picked.nickname"
+                class="panel-badge mono"
+                :title="tm('record.copyId')"
+                style="cursor: pointer"
+                @click="copyCustomerId(picked.customerId)"
+              >
+                {{ picked.customerId }}
+              </span>
+            </template>
             <div class="panel-head-right" v-if="picked">
               {{ tm('record.messages', { n: picked.messageCount }) }}
             </div>
@@ -288,6 +332,8 @@ interface ConvRow {
   userId: string;
   cid: string;
   customerId: string;
+  nickname: string;
+  avatar: string;
   messageCount: number;
   snippet: string;
   updatedAt: number;
@@ -425,13 +471,18 @@ async function fetchConversations() {
       include_history: true,
     });
     const data = res.data?.data ?? {};
-    const rows: ConvRow[] = (data.conversations ?? []).map((item: any) => {
+    const rows: ConvRow[] = (data.conversations ?? [])
+      // Analysis sessions themselves are corpus, not customer data.
+      .filter((item: any) => item.persona_id !== "marketing_analyst")
+      .map((item: any) => {
       const messages = parseMessages(item.history);
       return {
         key: `${item.user_id}||${item.cid}`,
         userId: item.user_id,
         cid: item.cid,
         customerId: extractCustomerId(item.user_id),
+        nickname: "",
+        avatar: "",
         messageCount: messages.length,
         snippet:
           messages.find((m) => m.role === "user")?.text.slice(0, 80) ||
@@ -443,10 +494,52 @@ async function fetchConversations() {
     conversations.value = rows;
     totalCount.value = data.pagination?.total ?? rows.length;
     pruneSelection();
+    void applyCustomerNames();
   } catch (error) {
     console.error("Failed to load conversations:", error);
   } finally {
     loading.value = false;
+  }
+}
+
+async function applyCustomerNames() {
+  const ids = Array.from(
+    new Set(conversations.value.map((c) => c.customerId).filter(Boolean)),
+  );
+  if (!ids.length) return;
+  try {
+    const res = await analysisApi.customerNames(ids);
+    const names = res.data?.data ?? {};
+    for (const conv of conversations.value) {
+      const info = names[conv.customerId];
+      if (info) {
+        conv.nickname = info.nickname || "";
+        conv.avatar = info.avatar || "";
+      }
+    }
+    if (picked.value) {
+      const info = names[picked.value.customerId];
+      if (info) {
+        picked.value.nickname = info.nickname || "";
+        picked.value.avatar = info.avatar || "";
+      }
+    }
+  } catch (error) {
+    // Name resolution is best effort; fall back to raw customer IDs.
+    console.warn("Failed to load customer names:", error);
+  }
+}
+
+function shortId(id: string) {
+  return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
+}
+
+async function copyCustomerId(customerId: string) {
+  try {
+    await navigator.clipboard.writeText(customerId);
+    notify(tm("record.copyIdDone"));
+  } catch {
+    notify(customerId);
   }
 }
 
@@ -493,6 +586,7 @@ function formatTime(epoch: number) {
 
 async function pickConversation(conv: ConvRow) {
   pickedKey.value = conv.key;
+  if (!conv.nickname || !conv.avatar) void applyCustomerNames();
   try {
     const res = await conversationApi.get(conv.userId, conv.cid);
     picked.value = { ...conv, messages: parseMessages(res.data?.data?.history) };
@@ -642,8 +736,6 @@ onMounted(async () => {
 }
 .analysis-container {
   padding: 20px 24px 28px;
-  max-width: 1600px;
-  margin: 0 auto;
 }
 .page-head {
   display: flex;
@@ -853,6 +945,34 @@ onMounted(async () => {
   align-items: center;
   gap: 7px;
   margin-bottom: 3px;
+}
+.cust-ava {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(var(--v-theme-on-surface), 0.1);
+}
+.conv-name {
+  font-size: 12.8px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conv-name:hover {
+  color: rgb(var(--v-theme-primary));
+}
+.mono-link {
+  cursor: pointer;
+  opacity: 0.75;
+}
+.mono-link:hover {
+  opacity: 1;
+  color: rgb(var(--v-theme-primary));
 }
 .conv-id {
   font-family: Consolas, Monaco, monospace;

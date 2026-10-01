@@ -207,6 +207,54 @@ class KfHumanTransferPlugin(Star):
             self.last_active[customer_id] = time.time()
             self._save_state()
 
+    def _ensure_customer_profile(self, customer_id: str):
+        """Backfill the customer profile (nickname/avatar) in the background.
+
+        The kf_customer_profile table is filled once per customer by calling
+        kf/customer/batchget the first time a customer message is seen after
+        startup. Everything runs in a detached task: any failure is logged
+        and never blocks or affects the message pipeline.
+
+        Args:
+            customer_id: External customer ID from the KF message.
+        """
+        if not customer_id:
+            return
+
+        async def _fill():
+            try:
+                db = self.context.get_db()
+                existing = await db.get_kf_customer_profiles([customer_id])
+                if existing:
+                    return
+                api = None
+                for inst in self.context.platform_manager.get_insts():
+                    api = getattr(inst, "wechat_kf_api", None)
+                    if api is not None:
+                        break
+                if api is None:
+                    return
+                resp = await asyncio.to_thread(api.batchget_customer, [customer_id])
+                info_list = resp.get("customer_list", []) or []
+                item = info_list[0] if info_list else {}
+                info = item.get("customer_info") or {}
+                corp = (info.get("corporation_info") or {}).get("corp_name", "")
+                nickname = info.get("nickname") or corp or ""
+                avatar = info.get("avatar") or ""
+                if nickname or avatar:
+                    await db.upsert_kf_customer_profile(customer_id, nickname, avatar)
+                    logger.info(
+                        f"[kf_human_transfer] customer profile saved: "
+                        f"{customer_id[:16]}... nickname={nickname!r}"
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"[kf_human_transfer] customer profile backfill failed "
+                    f"(non-blocking): {e}"
+                )
+
+        asyncio.create_task(_fill())
+
     def _mark_human(self, customer_id: str):
         self.human_since[customer_id] = time.time()
         self._save_state()
@@ -344,6 +392,7 @@ class KfHumanTransferPlugin(Star):
         if open_kfid:
             self.open_kfid = open_kfid
         self._touch(customer_id)
+        self._ensure_customer_profile(customer_id)
 
         # log every message (customer and servicer) with a timestamp
         text = event.message_str.strip() or f"[{raw.get('msgtype', '消息')}]"

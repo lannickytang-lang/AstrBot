@@ -24,6 +24,7 @@ from astrbot.core.db.po import (
     CommandConflict,
     ConversationV2,
     CronJob,
+    KfCustomerProfile,
     Persona,
     PersonaFolder,
     PlatformMessageHistory,
@@ -1261,6 +1262,64 @@ class SQLiteDatabase(BaseDatabase):
                 await session.flush()
                 await session.refresh(new_persona)
                 return new_persona
+
+    async def get_kf_customer_profiles(
+        self,
+        customer_ids: list[str],
+    ) -> list[KfCustomerProfile]:
+        """Get WeChat-KF customer profiles for the given external user IDs.
+
+        Args:
+            customer_ids: External customer IDs (``wmQcA1...`` style).
+
+        Returns:
+            Profiles found in the ``kf_customer_profile`` table.
+        """
+        ids = [cid for cid in dict.fromkeys(customer_ids) if cid]
+        if not ids:
+            return []
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(KfCustomerProfile).where(
+                col(KfCustomerProfile.customer_id).in_(ids),
+            )
+            result = await session.execute(query)
+            return result.scalars().all()
+
+    async def upsert_kf_customer_profile(
+        self,
+        customer_id: str,
+        nickname: str,
+        avatar: str = "",
+    ) -> None:
+        """Insert or refresh a WeChat-KF customer profile.
+
+        Args:
+            customer_id: External customer ID.
+            nickname: WeChat nickname reported by kf/customer/batchget.
+            avatar: Avatar URL, may be empty.
+        """
+        if not customer_id:
+            return
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                query = select(KfCustomerProfile).where(
+                    KfCustomerProfile.customer_id == customer_id,
+                )
+                row = (await session.execute(query)).scalar_one_or_none()
+                if row is None:
+                    session.add(
+                        KfCustomerProfile(
+                            customer_id=customer_id,
+                            nickname=nickname or "",
+                            avatar=avatar or "",
+                        ),
+                    )
+                else:
+                    row.nickname = nickname or row.nickname
+                    row.avatar = avatar or row.avatar
+                    row.updated_at = datetime.now(timezone.utc)
 
     async def get_persona_by_id(self, persona_id):
         """Get a persona by its ID."""

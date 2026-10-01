@@ -612,6 +612,20 @@ class Personality(TypedDict):
     _mood_imitation_dialogs_processed: str
 
 
+class KfCustomerProfile(TimestampMixin, SQLModel, table=True):
+    """微信客服客户资料（昵称/头像）。
+
+    首次接触时通过企微 kf/customer/batchget 拉取并入库，之后所有展示、
+    导出与分析场景只读本表，避免重复调用企微接口。
+    """
+
+    __tablename__: str = "kf_customer_profile"
+
+    customer_id: str = Field(primary_key=True, max_length=64)
+    nickname: str = Field(default="", nullable=False)
+    avatar: str = Field(default="", nullable=False)
+
+
 # ====
 # Deprecated, and will be removed in future versions.
 # ====

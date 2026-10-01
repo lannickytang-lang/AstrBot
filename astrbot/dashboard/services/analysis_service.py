@@ -7,6 +7,7 @@ run inside the regular chat pipeline with a dedicated analyst persona.
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import json
 import uuid
@@ -133,6 +134,85 @@ class AnalysisService:
         self.persona_mgr = core_lifecycle.persona_mgr
         self.core_lifecycle = core_lifecycle
         self.scenario_file = Path(get_astrbot_data_path()) / "analysis_scenarios.json"
+
+    # ------------------------------------------------------------------
+    # Customer nickname resolution (WeChat Work kf/customer/batchget)
+    # ------------------------------------------------------------------
+
+    def _get_wechat_kf_api(self):
+        """Return the WeChat KF API wrapper from the running wecom adapter."""
+        for inst in self.core_lifecycle.platform_manager.get_insts():
+            api = getattr(inst, "wechat_kf_api", None)
+            if api is not None:
+                return api
+        return None
+
+    async def resolve_customer_names(
+        self,
+        customer_ids: list[str],
+        backfill: bool = True,
+    ) -> dict:
+        """Resolve WeChat nicknames/avatars for external customer IDs.
+
+        The ``kf_customer_profile`` table is the single source: profiles are
+        written once (either by the kf plugin on first contact or by the
+        backfill below) and every later read is table-only. Missing profiles
+        are fetched once via kf/customer/batchget and upserted; failures are
+        logged and never block the caller.
+
+        Args:
+            customer_ids: External customer IDs (wmQcA1... style).
+            backfill: Whether missing profiles may be fetched from the API.
+
+        Returns:
+            Mapping from customer ID to ``{"nickname", "avatar"}``. IDs that
+            cannot be resolved are absent from the result.
+        """
+        wanted = [cid for cid in dict.fromkeys(customer_ids) if cid]
+        if not wanted:
+            return {}
+
+        profiles = {
+            p.customer_id: {"nickname": p.nickname, "avatar": p.avatar}
+            for p in await self.db_helper.get_kf_customer_profiles(wanted)
+        }
+        missing = [cid for cid in wanted if cid not in profiles]
+        if not missing or not backfill:
+            return profiles
+
+        api = self._get_wechat_kf_api()
+        if api is None:
+            logger.warning(
+                "Customer name backfill skipped: wecom platform not running",
+            )
+            return profiles
+        for start in range(0, len(missing), 50):
+            chunk = missing[start : start + 50]
+            try:
+                resp = await asyncio.to_thread(api.batchget_customer, chunk)
+            except Exception as exc:
+                logger.warning(f"Failed to resolve customer names: {exc}")
+                break
+            for item in resp.get("customer_list", []) or []:
+                cid = item.get("external_userid")
+                info = item.get("customer_info") or {}
+                corp = (info.get("corporation_info") or {}).get("corp_name", "")
+                nickname = info.get("nickname") or corp or ""
+                avatar = info.get("avatar") or ""
+                if not cid:
+                    continue
+                try:
+                    await self.db_helper.upsert_kf_customer_profile(
+                        cid,
+                        nickname,
+                        avatar,
+                    )
+                    profiles[cid] = {"nickname": nickname, "avatar": avatar}
+                except Exception as exc:
+                    logger.warning(
+                        f"Failed to store customer profile {cid}: {exc}",
+                    )
+        return profiles
 
     # ------------------------------------------------------------------
     # Scenario prompt templates
@@ -344,7 +424,9 @@ class AnalysisService:
         if not conversations:
             raise AnalysisServiceError("筛选结果为空，请调整筛选条件后重试")
 
-        corpus, used_count, truncated = self._build_corpus(conversations)
+        customer_ids = [self._customer_id_of(conv.user_id) for conv in conversations]
+        names = await self.resolve_customer_names(customer_ids)
+        corpus, used_count, truncated = self._build_corpus(conversations, names)
         if not corpus.strip():
             raise AnalysisServiceError("所选会话没有可分析的消息内容")
 
@@ -388,16 +470,22 @@ class AnalysisService:
             "scenario_name": scenario["name"],
         }
 
-    def _build_corpus(self, conversations: list) -> tuple[str, int, bool]:
+    def _build_corpus(
+        self,
+        conversations: list,
+        names: dict | None = None,
+    ) -> tuple[str, int, bool]:
         """Render conversations into a compact text corpus for the LLM.
 
         Args:
             conversations: Conversation objects with history JSON.
+            names: Mapping from customer ID to resolved nickname/avatar info.
 
         Returns:
             Tuple of (corpus text, number of conversations included, whether
             the corpus hit the global character limit).
         """
+        names = names or {}
         blocks: list[str] = []
         used_count = 0
         truncated = False
@@ -424,10 +512,12 @@ class AnalysisService:
                 lines.append(f"客户: {text}" if role == "user" else f"客服: {text}")
             if not lines:
                 continue
-            block = (
-                f"【客户会话 {index}】客户ID: "
-                f"{self._customer_id_of(conv.user_id)}\n" + "\n".join(lines)
-            )
+            customer_id = self._customer_id_of(conv.user_id)
+            nickname = (names.get(customer_id) or {}).get("nickname") or ""
+            header_line = f"【客户会话 {index}】客户ID: {customer_id}"
+            if nickname:
+                header_line += f"（微信昵称：{nickname}）"
+            block = header_line + "\n" + "\n".join(lines)
             if total_chars + len(block) > MAX_CORPUS_CHARS:
                 truncated = True
                 break
@@ -436,7 +526,8 @@ class AnalysisService:
             used_count += 1
         header = (
             f"以下是 {used_count} 个客户与智能客服的近期会话记录，"
-            "每段以客户ID标识。请基于这些事实进行分析。\n\n"
+            "每段以客户ID和微信昵称标识。跟进建议中请同时给出客户ID与昵称，"
+            "方便店主识别并人工联系。请基于这些事实进行分析。\n\n"
         )
         return header + "\n\n".join(blocks), used_count, truncated
 
@@ -524,21 +615,31 @@ class AnalysisService:
             raise AnalysisServiceError("筛选结果为空，没有可导出的会话")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        names = await self.resolve_customer_names(
+            [self._customer_id_of(conv.user_id) for conv in conversations],
+        )
         if file_format == "jsonl":
-            return self._export_jsonl(conversations, timestamp)
-        return self._export_csv(conversations, timestamp)
+            return self._export_jsonl(conversations, timestamp, names)
+        return self._export_csv(conversations, timestamp, names)
 
-    def _export_jsonl(self, conversations: list, timestamp: str) -> tuple[str, BytesIO]:
+    def _export_jsonl(
+        self,
+        conversations: list,
+        timestamp: str,
+        names: dict,
+    ) -> tuple[str, BytesIO]:
         lines = []
         for conv in conversations:
             try:
                 content = json.loads(conv.history)
             except (json.JSONDecodeError, TypeError):
                 content = []
+            customer_id = self._customer_id_of(conv.user_id)
             record = {
                 "cid": conv.cid,
                 "user_id": conv.user_id,
-                "customer_id": self._customer_id_of(conv.user_id),
+                "customer_id": customer_id,
+                "customer_name": (names.get(customer_id) or {}).get("nickname") or "",
                 "platform_id": conv.platform_id,
                 "title": conv.title or None,
                 "persona_id": conv.persona_id,
@@ -550,16 +651,24 @@ class AnalysisService:
         file_obj = BytesIO("\n".join(lines).encode("utf-8"))
         return f"astrbot_analysis_export_{timestamp}.jsonl", file_obj
 
-    def _export_csv(self, conversations: list, timestamp: str) -> tuple[str, BytesIO]:
+    def _export_csv(
+        self,
+        conversations: list,
+        timestamp: str,
+        names: dict,
+    ) -> tuple[str, BytesIO]:
         buf = StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["客户ID", "平台", "会话ID", "标题", "时间", "角色", "内容"])
+        writer.writerow(
+            ["客户ID", "微信昵称", "平台", "会话ID", "标题", "时间", "角色", "内容"],
+        )
         for conv in conversations:
             try:
                 messages = json.loads(conv.history) or []
             except (json.JSONDecodeError, TypeError):
                 continue
             customer_id = self._customer_id_of(conv.user_id)
+            nickname = (names.get(customer_id) or {}).get("nickname") or ""
             created = (
                 datetime.fromtimestamp(conv.created_at).strftime("%Y-%m-%d %H:%M:%S")
                 if conv.created_at
@@ -577,6 +686,7 @@ class AnalysisService:
                 writer.writerow(
                     [
                         customer_id,
+                        nickname,
                         conv.platform_id,
                         conv.cid,
                         conv.title or "",
