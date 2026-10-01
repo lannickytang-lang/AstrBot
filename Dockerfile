@@ -23,6 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     git \
     ripgrep \
+    nodejs \
+    npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -40,6 +42,17 @@ RUN python -m pip install uv -i https://mirrors.cloud.tencent.com/pypi/simple \
 
 COPY . /AstrBot/
 
-EXPOSE 6185
+# Claude Code engine (official CLI, headless). Own layer: only rebuilds when
+# the CLI install line changes. npmmirror keeps this fast from CN VPSes.
+RUN npm install -g --registry=https://registry.npmmirror.com @anthropic-ai/claude-code \
+    && npm cache clean --force
 
-CMD ["python", "main.py"]
+# Bootstrap Claude Code home on every start: mark onboarding done (headless
+# runs skip the interactive wizard), and keep skills on the persistent data
+# volume so engine-visible skills survive container recreation.
+CMD mkdir -p /root/.claude /AstrBot/data/skills \
+    && { [ -f /root/.claude.json ] || printf '{"hasCompletedOnboarding":true,"theme":"dark"}' > /root/.claude.json; } \
+    && ln -sfn /AstrBot/data/skills /root/.claude/skills \
+    && python main.py
+
+EXPOSE 6185
