@@ -1,0 +1,74 @@
+{
+  "title": "データ分析",
+  "subtitle": "会話を絞り込み → 記録を確認 → エクスポートまたは AI 分析を開始",
+  "filters": {
+    "timeRange": "期間",
+    "today": "今日",
+    "last7Days": "過去7日",
+    "last30Days": "過去30日",
+    "custom": "カスタム…",
+    "customStart": "開始日",
+    "customEnd": "終了日",
+    "platform": "プラットフォーム（初期選択：WeComカスタマーサービス）",
+    "keyword": "キーワード（タイトル/内容）",
+    "keywordPlaceholder": "例：価格 / グループ購入",
+    "messageType": "メッセージ種別",
+    "friend": "個別チャット",
+    "group": "グループ",
+    "reset": "リセット",
+    "hitCount": "{n} 件の会話が該当"
+  },
+  "list": {
+    "title": "会話リスト",
+    "selected": "選択 {sel} / {total}",
+    "selectAllPage": "このページを選択",
+    "messages": "{n} 件",
+    "noData": "該当する会話がありません"
+  },
+  "record": {
+    "title": "対話記録",
+    "empty": "左側の会話をクリックすると全文が表示されます",
+    "emptyHint": "分析に含めるか判断するために内容を確認",
+    "foot": "チェックした会話のみを分析対象にできます。このプレビューは自分にのみ表示されます",
+    "messages": "{n} 件のメッセージ",
+    "customer": "顧客",
+    "bot": "Bot"
+  },
+  "actions": {
+    "scenario": "分析シナリオ",
+    "instructions": "シナリオ指示",
+    "scope": "範囲",
+    "scopeAll": "絞り込み全体（{n}）",
+    "scopeSelected": "選択のみ（{n}）",
+    "export": "エクスポート",
+    "exportCsv": "CSV エクスポート",
+    "exportJsonl": "JSONL エクスポート",
+    "start": "分析開始",
+    "startHint": "分析セッションを作成しチャット画面へ移動します。AI がストリーミング出力し、追質問も可能 · 1回最大50会話、各会話は直近40メッセージ"
+  },
+  "dialog": {
+    "title": "シナリオ指示テンプレート",
+    "subtitle": "分析の角度と出力構造を定義。役割設定は「人格設定」のマーケティングアナリストで管理",
+    "instructionLabel": "開始指示（会話コーパスは自動注入されます）",
+    "nameLabel": "名前",
+    "iconLabel": "アイコン",
+    "descriptionLabel": "説明",
+    "newScene": "＋ 新規シナリオ",
+    "restore": "デフォルトに戻す",
+    "save": "保存",
+    "deleteScene": "シナリオ削除"
+  },
+  "messages": {
+    "createSuccess": "分析セッションを作成しました。チャットへ移動中…",
+    "exportSuccess": "エクスポート完了",
+    "noSelection": "先に会話を選択してください",
+    "saveSuccess": "シナリオを保存しました",
+    "restoreSuccess": "デフォルトに戻しました",
+    "deleteSuccess": "シナリオを削除しました"
+  },
+  "platformNames": {
+    "wecom": "WeCom CS",
+    "webchat": "ダッシュボード",
+    "weixin_personal_mlep": "個人WeChat"
+  }
+}

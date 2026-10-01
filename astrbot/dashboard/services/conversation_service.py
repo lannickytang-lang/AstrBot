@@ -49,6 +49,8 @@ class ConversationService:
         sort_order: str = "desc",
         group_by_session: bool = False,
         include_history: bool = True,
+        created_after: int | None = None,
+        created_before: int | None = None,
     ) -> dict:
         platform_list = [item.strip() for item in platforms.split(",") if item.strip()]
         message_type_list = [
@@ -81,6 +83,8 @@ class ConversationService:
                 sort_order=sort_order,
                 group_by_session=group_by_session,
                 include_history=include_history,
+                created_after=created_after,
+                created_before=created_before,
             )
         except Exception as exc:
             logger.error(f"数据库查询出错: {exc!s}\n{traceback.format_exc()}")

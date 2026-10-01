@@ -1,0 +1,74 @@
+{
+  "title": "Data Analysis",
+  "subtitle": "Filter conversations → review records → export or launch AI analysis",
+  "filters": {
+    "timeRange": "Time range",
+    "today": "Today",
+    "last7Days": "Last 7 days",
+    "last30Days": "Last 30 days",
+    "custom": "Custom…",
+    "customStart": "Start date",
+    "customEnd": "End date",
+    "platform": "Platforms (WeCom KF selected by default)",
+    "keyword": "Keyword (title/content)",
+    "keywordPlaceholder": "e.g. price / group buy",
+    "messageType": "Message type",
+    "friend": "Private",
+    "group": "Group",
+    "reset": "Reset",
+    "hitCount": "{n} conversations match"
+  },
+  "list": {
+    "title": "Conversations",
+    "selected": "Selected {sel} / {total}",
+    "selectAllPage": "Select page",
+    "messages": "{n} msgs",
+    "noData": "No conversations match"
+  },
+  "record": {
+    "title": "Conversation record",
+    "empty": "Click a conversation on the left to view its full record",
+    "emptyHint": "Check what the customer asked before including it in analysis",
+    "foot": "Check conversations to fine-tune the analysis scope; this preview is private",
+    "messages": "{n} messages",
+    "customer": "Customer",
+    "bot": "Bot"
+  },
+  "actions": {
+    "scenario": "Scenario",
+    "instructions": "Instructions",
+    "scope": "Scope",
+    "scopeAll": "All filtered ({n})",
+    "scopeSelected": "Selected only ({n})",
+    "export": "Export",
+    "exportCsv": "Export CSV",
+    "exportJsonl": "Export JSONL",
+    "start": "Start analysis",
+    "startHint": "Creates a chat session and opens the chat window with streaming analysis; follow-up questions supported · max 50 conversations/run, last 40 messages each"
+  },
+  "dialog": {
+    "title": "Scenario instruction templates",
+    "subtitle": "Defines the analysis angle and output structure; the role prompt lives in the marketing_analyst persona",
+    "instructionLabel": "Opening instruction (conversation corpus is injected automatically)",
+    "nameLabel": "Name",
+    "iconLabel": "Icon",
+    "descriptionLabel": "Description",
+    "newScene": "＋ New scenario",
+    "restore": "Restore default",
+    "save": "Save",
+    "deleteScene": "Delete scenario"
+  },
+  "messages": {
+    "createSuccess": "Analysis session created, opening chat…",
+    "exportSuccess": "Exported",
+    "noSelection": "Select conversations first",
+    "saveSuccess": "Scenario saved",
+    "restoreSuccess": "Restored to default",
+    "deleteSuccess": "Scenario deleted"
+  },
+  "platformNames": {
+    "wecom": "WeCom KF",
+    "webchat": "Dashboard",
+    "weixin_personal_mlep": "Personal WeChat"
+  }
+}

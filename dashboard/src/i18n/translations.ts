@@ -12,6 +12,7 @@ import zhCNShared from './locales/zh-CN/core/shared.json';
 import zhCNChat from './locales/zh-CN/features/chat.json';
 import zhCNExtension from './locales/zh-CN/features/extension.json';
 import zhCNConversation from './locales/zh-CN/features/conversation.json';
+import zhCNAnalysis from './locales/zh-CN/features/analysis.json';
 import zhCNSessionManagement from './locales/zh-CN/features/session-management.json';
 import zhCNToolUse from './locales/zh-CN/features/tool-use.json';
 import zhCNProvider from './locales/zh-CN/features/provider.json';
@@ -53,6 +54,7 @@ import enUSShared from './locales/en-US/core/shared.json';
 import enUSChat from './locales/en-US/features/chat.json';
 import enUSExtension from './locales/en-US/features/extension.json';
 import enUSConversation from './locales/en-US/features/conversation.json';
+import enUSAnalysis from './locales/en-US/features/analysis.json';
 import enUSSessionManagement from './locales/en-US/features/session-management.json';
 import enUSToolUse from './locales/en-US/features/tool-use.json';
 import enUSProvider from './locales/en-US/features/provider.json';
@@ -94,6 +96,7 @@ import ruRUShared from './locales/ru-RU/core/shared.json';
 import ruRUChat from './locales/ru-RU/features/chat.json';
 import ruRUExtension from './locales/ru-RU/features/extension.json';
 import ruRUConversation from './locales/ru-RU/features/conversation.json';
+import ruRUAnalysis from './locales/ru-RU/features/analysis.json';
 import ruRUSessionManagement from './locales/ru-RU/features/session-management.json';
 import ruRUToolUse from './locales/ru-RU/features/tool-use.json';
 import ruRUProvider from './locales/ru-RU/features/provider.json';
@@ -135,6 +138,7 @@ import jaJPShared from './locales/ja-JP/core/shared.json';
 import jaJPChat from './locales/ja-JP/features/chat.json';
 import jaJPExtension from './locales/ja-JP/features/extension.json';
 import jaJPConversation from './locales/ja-JP/features/conversation.json';
+import jaJPAnalysis from './locales/ja-JP/features/analysis.json';
 import jaJPSessionManagement from './locales/ja-JP/features/session-management.json';
 import jaJPToolUse from './locales/ja-JP/features/tool-use.json';
 import jaJPProvider from './locales/ja-JP/features/provider.json';
@@ -180,6 +184,7 @@ export const translations = {
       chat: zhCNChat,
       extension: zhCNExtension,
       conversation: zhCNConversation,
+      analysis: zhCNAnalysis,
       'session-management': zhCNSessionManagement,
       tooluse: zhCNToolUse,
       provider: zhCNProvider,
@@ -229,6 +234,7 @@ export const translations = {
       chat: enUSChat,
       extension: enUSExtension,
       conversation: enUSConversation,
+      analysis: enUSAnalysis,
       'session-management': enUSSessionManagement,
       tooluse: enUSToolUse,
       provider: enUSProvider,
@@ -278,6 +284,7 @@ export const translations = {
       chat: ruRUChat,
       extension: ruRUExtension,
       conversation: ruRUConversation,
+      analysis: ruRUAnalysis,
       'session-management': ruRUSessionManagement,
       tooluse: ruRUToolUse,
       provider: ruRUProvider,
@@ -327,6 +334,7 @@ export const translations = {
       chat: jaJPChat,
       extension: jaJPExtension,
       conversation: jaJPConversation,
+      analysis: jaJPAnalysis,
       'session-management': jaJPSessionManagement,
       tooluse: jaJPToolUse,
       provider: jaJPProvider,

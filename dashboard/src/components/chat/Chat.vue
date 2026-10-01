@@ -963,6 +963,7 @@ onMounted(async () => {
       activeWorkspace.value = "providers";
     } else if (routeSessionId) {
       await selectSession(routeSessionId, false);
+      await maybeAutoSendFromRoute();
     }
   } finally {
     loadingSessions.value = false;
@@ -1001,12 +1002,24 @@ watch(
       showChatWorkspace();
       selectedProjectId.value = null;
       await selectSession(routeSessionId, false);
+      await maybeAutoSendFromRoute();
     } else if (!routeSessionId && currSessionId.value) {
       showChatWorkspace();
       currSessionId.value = "";
     }
   },
 );
+
+// Send the autoSend query payload (e.g. an analysis opening instruction from
+// the data-analysis page) once, then strip it from the URL.
+async function maybeAutoSendFromRoute() {
+  const autoSend = route.query.autoSend;
+  if (typeof autoSend !== "string" || !autoSend.trim()) return;
+  await router.replace({ query: {} });
+  if (sending.value) return;
+  draft.value = autoSend.trim();
+  await sendCurrentMessage();
+}
 
 watch(activeMessages, () => {
   if (!suppressAutoScroll.value && shouldStickToBottom.value) {

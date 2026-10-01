@@ -1883,3 +1883,74 @@ export const changelogApi = {
     );
   },
 };
+
+export interface AnalysisScenario {
+  id: string;
+  name: string;
+  icon: string;
+  built_in: boolean;
+  description: string;
+  instruction: string;
+}
+
+export interface AnalysisFilterPayload {
+  platforms?: string[];
+  keyword?: string;
+  message_types?: string[];
+  created_after?: number;
+  created_before?: number;
+  conversations?: Array<{ user_id: string; cid: string }>;
+}
+
+export interface AnalysisSessionPayload extends AnalysisFilterPayload {
+  scenario_id: string;
+}
+
+export interface AnalysisSessionResult {
+  session_id: string;
+  conversation_id: string;
+  conversation_count: number;
+  truncated: boolean;
+  opening_instruction: string;
+  scenario_name: string;
+}
+
+export const analysisApi = {
+  listScenarios() {
+    return typed<AnalysisScenario[]>(openApiV1.listAnalysisScenarios());
+  },
+  createScenario(payload: { name: string; icon?: string; description?: string; instruction: string }) {
+    return typed<AnalysisScenario>(
+      openApiV1.createAnalysisScenario({ body: payload }),
+    );
+  },
+  updateScenario(
+    scenarioId: string,
+    payload: { name?: string; icon?: string; description?: string; instruction?: string },
+  ) {
+    return typed<AnalysisScenario>(
+      openApiV1.updateAnalysisScenario({ path: { scenario_id: scenarioId }, body: payload }),
+    );
+  },
+  restoreScenario(scenarioId: string) {
+    return typed<AnalysisScenario>(
+      openApiV1.restoreAnalysisScenario({ path: { scenario_id: scenarioId } }),
+    );
+  },
+  deleteScenario(scenarioId: string) {
+    return typed<{ message: string }>(
+      openApiV1.deleteAnalysisScenario({ path: { scenario_id: scenarioId } }),
+    );
+  },
+  createSession(payload: AnalysisSessionPayload) {
+    return typed<AnalysisSessionResult>(
+      openApiV1.createAnalysisSession({ body: payload }),
+    );
+  },
+  exportByFilter(payload: AnalysisFilterPayload & { format: 'csv' | 'jsonl' }) {
+    return openApiV1.exportAnalysisConversations({
+      body: payload,
+      responseType: 'blob',
+    }) as Promise<AxiosResponse<Blob>>;
+  },
+};

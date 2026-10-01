@@ -1,6 +1,6 @@
 services:
   yuansheng-astrbot:
-    image: yuansheng-astrbot:1.0.0
+    image: yuansheng-astrbot:1.1.0
     container_name: yuansheng-astrbot
     restart: unless-stopped
     ports:

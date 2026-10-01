@@ -11,6 +11,7 @@ from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.log import LogManager
 from astrbot.dashboard.responses import ApiError, error
+from astrbot.dashboard.services.analysis_service import AnalysisService
 from astrbot.dashboard.services.api_key_service import ApiKeyService
 from astrbot.dashboard.services.auth_service import AuthService
 from astrbot.dashboard.services.backup_service import BackupService
@@ -118,6 +119,7 @@ def create_dashboard_asgi_app(
         chat_projects=ChatUIProjectService(db),
         commands=CommandService(core_lifecycle.astrbot_config, core_lifecycle),
         conversations=ConversationService(db, core_lifecycle),
+        analysis=AnalysisService(db, core_lifecycle),
         cron=CronService(core_lifecycle),
         files=FileService(),
         knowledge_bases=KnowledgeBaseService(core_lifecycle),

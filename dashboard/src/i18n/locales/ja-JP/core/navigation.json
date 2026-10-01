@@ -6,6 +6,7 @@
   "commands": "コマンド管理",
   "persona": "ペルソナ設定",
   "data": "データとログ",
+  "analysis": "データ分析",
   "dataTabs": {
     "statistics": "統計",
     "conversations": "会話",

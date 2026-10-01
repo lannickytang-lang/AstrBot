@@ -459,6 +459,12 @@ class SQLiteDatabase(BaseDatabase):
             umo_query = str(kwargs.get("umo_query") or "").strip()
             if umo_query:
                 conditions.append(col(ConversationV2.user_id).ilike(f"%{umo_query}%"))
+            created_after = kwargs.get("created_after")
+            if created_after is not None:
+                conditions.append(col(ConversationV2.created_at) >= created_after)
+            created_before = kwargs.get("created_before")
+            if created_before is not None:
+                conditions.append(col(ConversationV2.created_at) <= created_before)
 
             if conditions:
                 base_query = base_query.where(*conditions)

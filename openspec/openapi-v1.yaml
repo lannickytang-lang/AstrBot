@@ -4325,6 +4325,16 @@ paths:
             type: boolean
             default: true
           description: Include full message history in each conversation.
+        - name: created_after
+          in: query
+          schema:
+            type: integer
+          description: Only include conversations created at or after this Unix timestamp (seconds).
+        - name: created_before
+          in: query
+          schema:
+            type: integer
+          description: Only include conversations created at or before this Unix timestamp (seconds).
       responses:
         "200":
           $ref: "#/components/responses/Ok"
@@ -4443,6 +4453,114 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/ConversationExportRequest"
+      responses:
+        "200":
+          description: Exported conversation data
+
+  /api/v1/analysis/scenarios:
+    get:
+      tags: [Analysis]
+      summary: List analysis scenario prompt templates
+      operationId: listAnalysisScenarios
+      x-astrbot-scope: data
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+    post:
+      tags: [Analysis]
+      summary: Create a custom analysis scenario
+      operationId: createAnalysisScenario
+      x-astrbot-scope: data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisScenarioCreateRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
+  /api/v1/analysis/scenarios/{scenario_id}/restore:
+    post:
+      tags: [Analysis]
+      summary: Restore a built-in analysis scenario to its default content
+      operationId: restoreAnalysisScenario
+      x-astrbot-scope: data
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
+  /api/v1/analysis/scenarios/{scenario_id}:
+    put:
+      tags: [Analysis]
+      summary: Update an analysis scenario
+      operationId: updateAnalysisScenario
+      x-astrbot-scope: data
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisScenarioUpsertRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+    delete:
+      tags: [Analysis]
+      summary: Delete a custom analysis scenario
+      operationId: deleteAnalysisScenario
+      x-astrbot-scope: data
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
+  /api/v1/analysis/sessions:
+    post:
+      tags: [Analysis]
+      summary: Create a pre-seeded AI analysis chat session
+      operationId: createAnalysisSession
+      x-astrbot-scope: data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisSessionRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
+  /api/v1/analysis/export:
+    post:
+      tags: [Analysis]
+      summary: Export conversations matching a filter as CSV or JSONL
+      operationId: exportAnalysisConversations
+      x-astrbot-scope: data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalysisExportRequest"
       responses:
         "200":
           description: Exported conversation data
@@ -6393,6 +6511,74 @@ components:
           enum: [json, markdown]
           default: json
       additionalProperties: false
+
+    AnalysisScenarioUpsertRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+        description:
+          type: string
+        instruction:
+          type: string
+      additionalProperties: false
+
+    AnalysisScenarioCreateRequest:
+      type: object
+      required: [name, instruction]
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+        description:
+          type: string
+        instruction:
+          type: string
+      additionalProperties: false
+
+    AnalysisSessionRequest:
+      type: object
+      properties:
+        platforms:
+          type: array
+          items:
+            type: string
+          description: Platform IDs; defaults to wecom when omitted.
+        keyword:
+          type: string
+        message_types:
+          type: array
+          items:
+            type: string
+          description: Message types; defaults to FriendMessage when omitted.
+        created_after:
+          type: integer
+          description: Unix timestamp (seconds) lower bound on conversation creation.
+        created_before:
+          type: integer
+          description: Unix timestamp (seconds) upper bound on conversation creation.
+        conversations:
+          type: array
+          description: Explicit conversation list; overrides the filter when provided.
+          items:
+            $ref: "#/components/schemas/ConversationRef"
+        scenario_id:
+          type: string
+          default: intent
+      additionalProperties: false
+
+    AnalysisExportRequest:
+      allOf:
+        - $ref: "#/components/schemas/AnalysisSessionRequest"
+        - type: object
+          properties:
+            format:
+              type: string
+              enum: [csv, jsonl]
+              default: csv
 
     CronJobRequest:
       type: object

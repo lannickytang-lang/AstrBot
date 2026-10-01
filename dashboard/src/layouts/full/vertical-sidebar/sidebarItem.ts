@@ -62,6 +62,11 @@ const sidebarItem: menu[] = [
     to: '/data'
   },
   {
+    title: 'core.navigation.analysis',
+    icon: 'mdi-chart-box-outline',
+    to: '/analysis'
+  },
+  {
     title: 'core.navigation.groups.more',
     icon: 'mdi-dots-horizontal',
     children: [

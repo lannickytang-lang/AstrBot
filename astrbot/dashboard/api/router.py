@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 from fastapi.routing import APIRoute
 
+from .analysis import router as analysis_router
 from .api_keys import router as api_keys_router
 from .auth import ScopeDependency
 from .auth import router as auth_router
@@ -47,6 +48,7 @@ def build_api_router() -> APIRouter:
         chat_router,
         chat_projects_router,
         conversations_router,
+        analysis_router,
         cron_router,
         files_router,
         knowledge_bases_router,

@@ -297,6 +297,11 @@ const MainRoutes = {
       ]
     },
     {
+      name: 'Analysis',
+      path: '/analysis',
+      component: () => import('@/views/analysis/AnalysisPage.vue')
+    },
+    {
       name: 'Settings',
       path: '/settings',
       component: () => import('@/views/Settings.vue')

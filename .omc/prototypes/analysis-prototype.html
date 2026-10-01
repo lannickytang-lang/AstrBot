@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstrBot 数据分析 · 交互原型 v3（列表+记录+底部操作栏）</title>
+<style>
+  :root{
+    --bg:#1a1a1a; --surface:#242424; --surface2:#2a2a2a; --bubble:#2d2e30;
+    --primary:#5ba4d4; --primary-deep:#3a8ab8; --secondary:#4a95c4;
+    --text:#e8eaed; --text-sub:#9aa0a6; --text-faint:#6b7280;
+    --border:#3a3a3a; --border-soft:#33333388;
+    --success:#52c41a; --warning:#faad14; --error:#ff4d4f; --accent:#FFAB91;
+    --code-bg:#282833; --radius:12px; --radius-sm:8px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);min-height:100vh;
+    font-family:Outfit,"Noto Sans","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",sans-serif;font-size:14px}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border-soft);padding:16px 12px;flex-shrink:0}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border-soft);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:10}
+  .content{padding:20px 24px 28px;flex:1}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;font-weight:600;font-size:15px}
+  .logo .bot-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:16px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--text-sub);cursor:pointer;margin-bottom:2px;font-size:13.5px;transition:all .15s}
+  .nav-item:hover{background:#ffffff0a;color:var(--text)}
+  .nav-item.active{background:var(--primary);color:#fff;font-weight:500}
+  .nav-item .new-tag{margin-left:auto;font-size:10px;background:var(--success);color:#0b1a05;padding:1px 6px;border-radius:10px;font-weight:600}
+  .topbar .crumb{color:var(--text-sub);font-size:13px}
+  .page-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+  .page-head h1{font-size:20px;font-weight:600}
+  .page-head .sub{color:var(--text-sub);font-size:12.5px;padding-bottom:2px}
+  .btn{border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit}
+  .btn-ghost{background:transparent;color:var(--text-sub);border:1px solid var(--border)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--text-faint)}
+  .btn-primary{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:500}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-outline{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+  .btn-outline:hover{background:#5ba4d418}
+  .btn-sm{padding:5px 12px;font-size:12.5px}
+  .card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:16px 18px}
+  .filter-row{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+  .f-group{display:flex;flex-direction:column;gap:6px}
+  .f-label{font-size:11.5px;color:var(--text-sub);letter-spacing:.3px}
+  .chips{display:flex;gap:6px}
+  .chip{padding:5px 13px;border-radius:16px;border:1px solid var(--border);color:var(--text-sub);cursor:pointer;font-size:12.5px;transition:all .15s;user-select:none}
+  .chip:hover{border-color:var(--text-faint)}
+  .chip.on{background:#5ba4d426;border-color:var(--primary);color:var(--primary);font-weight:500}
+  input[type=text],select{background:var(--bubble);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 12px;font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+  input[type=text]:focus,select:focus{border-color:var(--primary)}
+  select option{background:var(--surface)}
+  .f-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .hit-count{font-size:12.5px;color:var(--text-sub)}
+  .hit-count b{color:var(--primary);font-size:15px}
+  /* 两栏：列表 + 记录预览 */
+  .workspace{display:grid;grid-template-columns:minmax(360px,5fr) minmax(440px,7fr);gap:16px;margin-top:16px;align-items:stretch}
+  .panel{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);display:flex;flex-direction:column;min-height:540px;overflow:hidden}
+  .panel-head{padding:14px 16px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .panel-head .t{font-weight:600;font-size:14.5px}
+  .panel-head .badge{background:#5ba4d426;color:var(--primary);border-radius:12px;padding:1px 9px;font-size:11.5px}
+  .panel-head .right{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text-sub)}
+  /* 会话列表 */
+  .conv-list{overflow-y:auto;flex:1}
+  .conv-row{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #ffffff07;cursor:pointer;transition:background .12s;align-items:flex-start}
+  .conv-row:hover{background:#ffffff07}
+  .conv-row.picked{background:#5ba4d41f;box-shadow:inset 3px 0 0 var(--primary)}
+  .conv-row input[type=checkbox]{margin-top:3px;accent-color:var(--primary);cursor:pointer}
+  .conv-info{flex:1;min-width:0}
+  .conv-top{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+  .pf{width:17px;height:17px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+  .pf.wecom{background:#2aae67;color:#fff}
+  .conv-id{font-family:Consolas,Monaco,monospace;font-size:12px;color:var(--text)}
+  .conv-time{margin-left:auto;font-size:11px;color:var(--text-faint);flex-shrink:0}
+  .conv-msgs{font-size:11px;color:var(--primary);background:#5ba4d41a;border-radius:8px;padding:0 6px;flex-shrink:0}
+  .conv-snippet{font-size:12px;color:var(--text-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .conv-snippet b{color:var(--warning);font-weight:600}
+  .pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;font-size:12px;color:var(--text-sub);border-top:1px solid var(--border-soft)}
+  .pager .pg-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .pager .pg-btn.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  /* 右栏：对话记录 */
+  .rec-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-faint);padding:40px}
+  .rec-empty .big{font-size:38px;opacity:.5}
+  .rec-empty .hint{font-size:12.5px;line-height:1.8;text-align:center}
+  .rec-list{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+  .rec-day{text-align:center;font-size:11px;color:var(--text-faint);margin:6px 0 2px}
+  .rec-day span{background:var(--bubble);border-radius:10px;padding:2px 10px}
+  .msg{display:flex;gap:9px;max-width:88%}
+  .msg.user{align-self:flex-end;flex-direction:row-reverse}
+  .ava{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .ava.ai{background:linear-gradient(135deg,var(--primary),var(--secondary))}
+  .ava.cust{background:#3d5a45;color:#cfe8d8}
+  .bub{border-radius:4px 12px 12px 12px;padding:9px 13px;font-size:12.8px;line-height:1.7;background:var(--bubble)}
+  .msg.user .bub{background:#2f4a5c;border-radius:12px 4px 12px 12px}
+  .bub .kw{color:var(--warning);font-weight:600}
+  .bub .t{display:block;font-size:10.5px;color:var(--text-faint);margin-top:4px;text-align:right}
+  .rec-foot{padding:10px 20px;border-top:1px solid var(--border-soft);display:flex;gap:10px;align-items:center;font-size:12px;color:var(--text-sub)}
+  /* 底部吸底操作栏 */
+  .action-bar{position:sticky;bottom:12px;z-index:20;margin-top:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 12px 32px #00000066}
+  .ab-group{display:flex;align-items:center;gap:8px}
+  .ab-label{font-size:11.5px;color:var(--text-sub)}
+  .ab-sep{width:1px;height:24px;background:var(--border)}
+  .tpl-wrap{position:relative}
+  .tpl-wrap select{appearance:none;padding-right:26px;cursor:pointer;font-size:12.8px}
+  .tpl-wrap::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-sub);pointer-events:none;font-size:11px}
+  .radio-mini{display:flex;gap:4px;font-size:12.3px}
+  .radio-mini label{padding:5px 11px;border-radius:14px;border:1px solid var(--border);cursor:pointer;color:var(--text-sub);transition:all .15s}
+  .radio-mini label.on{border-color:var(--primary);color:var(--primary);background:#5ba4d41a}
+  .radio-mini input{display:none}
+  .ab-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .dropdown{position:relative}
+  .dd-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);min-width:170px;box-shadow:0 8px 24px #00000088;z-index:30;display:none;overflow:hidden}
+  .dd-menu.open{display:block}
+  .dd-item{padding:9px 14px;font-size:13px;cursor:pointer;display:flex;gap:8px;align-items:center}
+  .dd-item:hover{background:#ffffff0d}
+  /* 模态 */
+  .modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:#000000aa}
+  .modal.open{display:flex}
+  .modal-box{width:min(720px,92vw);max-height:86vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;box-shadow:0 24px 64px #000000cc}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:10px}
+  .modal-head .t{font-size:16px;font-weight:600}
+  .modal-head .sub{font-size:12px;color:var(--text-sub)}
+  .modal-body{padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--border-soft);display:flex;gap:10px;justify-content:flex-end}
+  .tpl-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tpl-tab{padding:6px 14px;border-radius:18px;border:1px solid var(--border);font-size:12.5px;cursor:pointer;color:var(--text-sub)}
+  .tpl-tab.on{border-color:var(--primary);color:var(--primary);background:#5ba4d41a}
+  .tpl-tab .builtin{font-size:10px;color:var(--success);margin-left:4px}
+  textarea{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:#ffffffdd;padding:12px;font-family:Consolas,Monaco,monospace;font-size:12.3px;line-height:1.7;resize:vertical;outline:none;width:100%}
+  textarea:focus{border-color:var(--primary)}
+  .tpl-edit-hint{font-size:11.5px;color:var(--text-faint);line-height:1.7}
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;z-index:99;transition:transform .25s;box-shadow:0 10px 30px #000000aa;display:flex;gap:8px;align-items:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#3f3f3f;border-radius:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><span class="bot-icon">🤖</span>AstrBot</div>
+    <div class="nav-item">👋 欢迎后</div>
+    <div class="nav-item">🤖 机器人</div>
+    <div class="nav-item">✨ 模型提供商</div>
+    <div class="nav-item">🧩 插件</div>
+    <div class="nav-item">⚙️ 配置文件</div>
+    <div class="nav-item">📖 知识库</div>
+    <div class="nav-item">💜 人格设定</div>
+    <div class="nav-item">🗄️ 数据与日志</div>
+    <div class="nav-item active"><span>📊 数据分析</span><span class="new-tag">NEW</span></div>
+    <div class="nav-item">🧪 更多功能</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="crumb">AstrBot / <b style="color:var(--text)">数据分析</b></span>
+      <span style="margin-left:auto;font-size:12px;color:var(--text-faint)">原型 v3 · 筛选 → 浏览记录 → 底部行动栏</span>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <h1>数据分析</h1>
+          <div class="sub">筛选客户会话 → 查看对话记录 → 导出或一键发起 AI 分析会话（在聊天窗口中多轮深挖）</div>
+        </div>
+      </div>
+
+      <!-- 顶部：筛选卡（只管取数） -->
+      <div class="card">
+        <div class="filter-row">
+          <div class="f-group">
+            <span class="f-label">时间范围</span>
+            <div class="chips">
+              <span class="chip">今天</span>
+              <span class="chip on">近 7 天</span>
+              <span class="chip">近 30 天</span>
+              <span class="chip">自定义…</span>
+            </div>
+          </div>
+          <div class="f-group">
+            <span class="f-label">平台（默认选中企微客服）</span>
+            <div class="chips">
+              <span class="chip on">企微客服 ✓</span>
+              <span class="chip">管理台</span>
+              <span class="chip">个人微信</span>
+            </div>
+          </div>
+          <div class="f-group">
+            <span class="f-label">关键词（标题/内容）</span>
+            <input type="text" value="价格" placeholder="如：价格 / 团购 / 多少钱" style="width:190px">
+          </div>
+          <div class="f-group">
+            <span class="f-label">消息类型</span>
+            <select style="width:110px"><option>私聊</option><option>群聊</option><option>全部</option></select>
+          </div>
+          <div class="f-actions">
+            <button class="btn btn-ghost btn-sm" onclick="toast('↺','已重置筛选条件')">重置</button>
+            <div class="hit-count">符合条件 <b>23</b> 个会话</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中部：左列表 + 右记录预览 -->
+      <div class="workspace">
+        <section class="panel">
+          <div class="panel-head">
+            <span class="t">会话列表</span><span class="badge" id="selBadge">已选 5 / 23</span>
+            <div class="right">
+              <label style="display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="selAll" onchange="toggleAll(this)" style="accent-color:var(--primary)">本页全选</label>
+            </div>
+          </div>
+          <div class="conv-list" id="convList"></div>
+          <div class="pager"><span class="pg-btn">‹</span><span class="pg-btn on">1</span><span class="pg-btn">2</span><span>…</span><span style="margin-left:6px">每页 20 条</span></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <span class="t">对话记录</span>
+            <span class="badge" id="recTitle" style="font-family:Consolas,monospace">wmQcA1OAAAdKVjWC9CscnvWXUvtDYQGA</span>
+            <div class="right" id="recMeta">企微客服 · 12 条消息 · 10/01</div>
+          </div>
+          <div class="rec-empty" id="recEmpty" style="display:none">
+            <div class="big">🗨️</div>
+            <div class="hint">点击左侧任意会话，查看完整对话记录<br>确认客户聊了什么，再决定是否纳入分析</div>
+          </div>
+          <div class="rec-list" id="recList"></div>
+          <div class="rec-foot">
+            <span>💡 勾选左侧会话可精确控制分析范围；本预览仅你可见，不影响客户</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- 底部：吸底行动栏 -->
+      <div class="action-bar">
+        <div class="ab-group">
+          <span class="ab-label">分析场景</span>
+          <div class="tpl-wrap">
+            <select id="tplSel" onchange="onTplChange()">
+              <option value="intent">🎯 高意向客户挖掘</option>
+              <option value="visit">🏪 到店转化跟进</option>
+              <option value="winback">💤 流失预警挽回</option>
+              <option value="insight">📈 经营洞察报告</option>
+              <option value="custom">✏️ 自定义场景</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('tplModal').classList.add('open')">📝 场景指令</button>
+        </div>
+        <div class="ab-sep"></div>
+        <div class="ab-group">
+          <span class="ab-label">范围</span>
+          <div class="radio-mini" id="scopeMini">
+            <label class="on" onclick="pickScope(this)">全部筛选（23）</label>
+            <label onclick="pickScope(this)">仅勾选（<b id="scopeSel" style="color:var(--primary)">5</b>）</label>
+          </div>
+        </div>
+        <div class="ab-right">
+          <div class="dropdown">
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();document.getElementById('ddExport').classList.toggle('open')">⬇ 导出</button>
+            <div class="dd-menu" id="ddExport">
+              <div class="dd-item" onclick="toast('✅','已按当前筛选导出 CSV（Excel 可直接打开）')">📄 导出 CSV</div>
+              <div class="dd-item" onclick="toast('✅','已按当前筛选导出 JSONL')">🧾 导出 JSONL</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="runBtn" style="padding:8px 22px" onclick="runAnalysis()">✦ 开始分析</button>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:11.5px;color:var(--text-faint);margin-top:8px">开始分析后将创建分析会话并跳转聊天窗口（#/chat），AI 流式输出报告，可继续多轮追问 · 上限 50 会话/次，每会话取最近 40 条消息</div>
+    </div>
+  </div>
+</div>
+
+<!-- 场景指令编辑模态 -->
+<div class="modal" id="tplModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div><div class="t">分析场景指令模板</div><div class="sub">决定 AI 分析的角度与输出结构；角色与专业要求在「人格设定 → 营销分析师」中维护</div></div>
+      <span style="margin-left:auto;cursor:pointer;color:var(--text-sub)" onclick="document.getElementById('tplModal').classList.remove('open')">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="tpl-tabs">
+        <span class="tpl-tab on">🎯 高意向客户挖掘<span class="builtin">内置</span></span>
+        <span class="tpl-tab">🏪 到店转化跟进<span class="builtin">内置</span></span>
+        <span class="tpl-tab">💤 流失预警挽回<span class="builtin">内置</span></span>
+        <span class="tpl-tab">📈 经营洞察报告<span class="builtin">内置</span></span>
+        <span class="tpl-tab">＋ 新建场景</span>
+      </div>
+      <div>
+        <div class="f-label" style="margin-bottom:6px">开场分析指令（会话语料由系统自动注入上下文，无需写在指令里）</div>
+        <textarea rows="7">请分析以上客户会话，按需求明确度、预算信号、时间紧迫性、决策人身份、到店意愿五个维度评估每个客户的意向，输出：
+1. 按意向分排序的客户表格（客户ID / 意向等级 S·A·B·C / 意向课程 / 预算与顾虑 / 推荐跟进动作）
+2. 为 S、A 级客户各写一句可直接复制的微信跟进话术
+3. 一段总体判断与本周跟进优先级建议</textarea>
+      </div>
+      <div class="tpl-edit-hint">💡 场景模板可编辑、另存副本、新建——后续新分析场景无需改代码。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="toast('↺','已恢复该内置场景默认指令')">恢复默认</button>
+      <button class="btn btn-primary btn-sm" onclick="toast('✅','场景指令已保存');document.getElementById('tplModal').classList.remove('open')">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIc"></span><span id="toastTx"></span></div>
+
+<script>
+/* ---------- 会话与对话记录模拟数据 ---------- */
+const recs = {
+ 0:[ {d:'今天'},
+   {u:1,t:'18:20',m:'你好，小孩 7 岁想学钢琴，<span class="kw">怎么收费</span>？'},
+   {u:0,t:'18:20',m:'您好～欢迎咨询缘声琴行！钢琴一对一专业课团购价 <b>21.8 元</b>（原价 150，30 分钟），全周可用，提前 1 天预约就可以😊'},
+   {u:1,t:'18:21',m:'21.8 之后<span class="kw">长期课怎么收费</span>？'},
+   {u:0,t:'18:21',m:'长期课的课时包和价格以门店报价为准哦～方便带小朋友来店体验，试课后如继续报课，团购费用<b>全退</b>，还送精美礼品和课件🎁'},
+   {u:1,t:'18:22',m:'周末能约吗'},
+   {u:0,t:'18:22',m:'可以！周六上午 10 点、下午 3 点都有空位，您想约哪个时间呀？'} ],
+ 1:[ {d:'今天'},
+   {u:1,t:'18:03',m:'吉他一对一体验课还有名额吗？<span class="kw">原价200现在21.8</span>？'},
+   {u:0,t:'18:03',m:'是的～吉他一对一团购价 <b>21.8 元</b>（原价 200），民谣/电吉他等 3 选 1，提前 3 小时预约即可，周六上午还有名额！'},
+   {u:1,t:'18:05',m:'周六上午几点'},
+   {u:0,t:'18:05',m:'10:00–12:00 都可以，您几点方便？我帮您留意位置🎸'} ],
+ 3:[ {d:'今天'},
+   {u:1,t:'15:10',m:'小提琴 260 原价的团购也是 21.8？'},
+   {u:0,t:'15:10',m:'对呀～小提琴一对一团购价 <b>21.8 元</b>（原价 260，1.1 折），随时退、过期退～'},
+   {u:1,t:'15:11',m:'<span class="kw">试课后报课团购费全退吗</span>，你们地址在哪'},
+   {u:0,t:'15:11',m:'全退的！报课后团购费全部退回，还送内部课件🎻 门店在岳麓区××路××号，地铁 2 号线××站 3 口步行 5 分钟～'},
+   {u:1,t:'15:12',m:'好，我想想'} ]
+};
+const convs=[
+ {id:'wmQcA1OAAAdKVjWC9CscnvWXUvtDYQGA',n:12,t:'今天 18:22',s:'客户：小孩 7 岁想学钢琴，<b>团购价 21.8 之后长期课怎么收</b>费？周末能约吗…'},
+ {id:'wmQcA1OAAAyGT4pWhlqXr7jEtzADJo8g',n:8,t:'今天 18:05',s:'客户：吉他一对一体验课还有名额吗？<b>原价200现在21.8</b>，周六上午…'},
+ {id:'wmQcA1OAAAc9xLm2pQzTvbHRwuXyEKfF',n:6,t:'今天 16:40',s:'客户：成年人零基础学尤克里里难不难？<b>月卡和单次哪个划算</b>…'},
+ {id:'wmQcA1OAAAb7HnJ4vRtYxwKEplMzQaDd',n:15,t:'今天 15:12',s:'客户：小提琴 260 原价的团购也是 21.8？<b>试课后报课团购费全退吗</b>，地址在哪…'},
+ {id:'wmQcA1OAAAf3WqN8mZcBveTYixrUPoHh',n:4,t:'昨天 21:48',s:'客户：<b>萨克斯体验课</b>周末有吗？先问问价格…'},
+ {id:'wmQcA1OAAAh5RtP0nXdCwqVZjsyLBgKe',n:9,t:'昨天 20:31',s:'客户：两家琴行对比中，你们<b>钢琴老师是全职吗</b>，能不能先约节体验…'},
+ {id:'wmQcA1OAAAj8YuQ2pOeDxrWAktzNCvIl',n:3,t:'昨天 19:02',s:'客户：电吉他大概多少钱一把？入门套装有推荐吗…'},
+ {id:'wmQcA1OAAAk1ZvR4qPgFysXBluwMDmJm',n:7,t:'昨天 17:55',s:'客户：声乐课好评率高的那个老师是谁？<b>21.8 的课有效期</b>多久…'},
+ {id:'wmQcA1OAAlm4WtS6rShGztYcuvxNEoKp',n:5,t:'09/29 14:20',s:'客户：竹笛小朋友几岁能学？<b>团购课需要提前多久约</b>…'},
+ {id:'wmQcA1OAAn7XuU8sTiHdvyBewrOFpLqi',n:11,t:'09/29 11:03',s:'客户：问过两次价格了，<b>钢琴长期课有没有活动</b>，纠结中…'},
+];
+const $=id=>document.getElementById(id);
+convs.forEach((c,i)=>{c.sel=i<5;c.pick=i===0});
+let picked=0;
+function renderList(){
+  $('convList').innerHTML=convs.map((c,i)=>`
+  <div class="conv-row ${c.pick?'picked':''}" onclick="if(event.target.tagName!=='INPUT')pickRow(${i})">
+    <input type="checkbox" ${c.sel?'checked':''} onchange="convs[${i}].sel=this.checked;updateCount();event.stopPropagation()" onclick="event.stopPropagation()">
+    <div class="conv-info">
+      <div class="conv-top"><span class="pf wecom">微</span><span class="conv-id">${c.id}</span><span class="conv-msgs">${c.n} 条</span><span class="conv-time">${c.t}</span></div>
+      <div class="conv-snippet">${c.s}</div>
+    </div>
+  </div>`).join('');
+}
+function pickRow(i){
+  convs.forEach(c=>c.pick=false);convs[i].pick=true;picked=i;
+  renderList();renderRec();
+}
+function renderRec(){
+  const r=recs[picked];
+  $('recTitle').textContent=convs[picked].id;
+  $('recMeta').textContent=`企微客服 · ${convs[picked].n} 条消息 · ${convs[picked].t}`;
+  if(!r){$('recEmpty').style.display='flex';$('recList').style.display='none';return}
+  $('recEmpty').style.display='none';$('recList').style.display='flex';
+  $('recList').innerHTML=r.map(m=>m.d?`<div class="rec-day"><span>${m.d}</span></div>`
+   :`<div class="msg ${m.u?'user':''}"><div class="ava ${m.u?'cust':'ai'}">${m.u?'客':'缘'}</div><div class="bub">${m.m}<span class="t">${m.t}</span></div></div>`).join('');
+}
+function updateCount(){const n=convs.filter(c=>c.sel).length;$('selBadge').textContent=`已选 ${n} / 23`;$('scopeSel').textContent=n}
+function toggleAll(cb){convs.forEach(c=>c.sel=cb.checked);renderList();updateCount()}
+function pickScope(el){[...el.parentNode.children].forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+document.addEventListener('click',()=>document.getElementById('ddExport')?.classList.remove('open'));
+function onTplChange(){}
+function runAnalysis(){
+  $('runBtn').disabled=true;
+  toast('⏳','正在创建分析会话（注入 23 个会话语料）…');
+  setTimeout(()=>{toast('💬','演示：正式版将跳转 #/chat，AI 流式输出「高意向客户挖掘」报告，可继续追问');$('runBtn').disabled=false},1600);
+}
+let tT;function toast(ic,tx){$('toastIc').textContent=ic;$('toastTx').innerHTML=tx;$('toast').classList.add('show');clearTimeout(tT);tT=setTimeout(()=>$('toast').classList.remove('show'),2400)}
+renderList();updateCount();renderRec();
+</script>
+</body>
+</html>

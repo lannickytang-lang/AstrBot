@@ -100,6 +100,8 @@ async def _list_conversations(
     sort_order: Literal["asc", "desc"],
     group_by_session: bool,
     include_history: bool,
+    created_after: int | None,
+    created_before: int | None,
 ):
     return await _run(
         lambda: service.list_conversations(
@@ -116,6 +118,8 @@ async def _list_conversations(
             sort_order=sort_order,
             group_by_session=group_by_session,
             include_history=include_history,
+            created_after=created_after,
+            created_before=created_before,
         )
     )
 
@@ -135,6 +139,8 @@ async def list_conversations(
     sort_order: Literal["asc", "desc"] = Query(default="desc"),
     group_by_session: bool = Query(default=False),
     include_history: bool = Query(default=True),
+    created_after: int | None = Query(default=None),
+    created_before: int | None = Query(default=None),
     _auth: AuthContext = Depends(require_data_scope),
     service: ConversationService = Depends(get_service),
 ):
@@ -153,6 +159,8 @@ async def list_conversations(
         sort_order=sort_order,
         group_by_session=group_by_session,
         include_history=include_history,
+        created_after=created_after,
+        created_before=created_before,
     )
 
 
@@ -279,6 +287,8 @@ async def list_dashboard_conversations(
         sort_order=sort_order,
         group_by_session=group_by_session,
         include_history=include_history,
+        created_after=None,
+        created_before=None,
     )
 
 

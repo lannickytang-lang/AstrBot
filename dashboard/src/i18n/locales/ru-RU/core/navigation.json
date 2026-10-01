@@ -6,6 +6,7 @@
     "commands": "Команды",
     "persona": "Персонажи",
     "data": "Данные и логи",
+    "analysis": "Анализ данных",
     "dataTabs": {
         "statistics": "Статистика",
         "conversations": "Данные диалогов",

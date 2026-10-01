@@ -6,6 +6,7 @@
   "commands": "指令管理",
   "persona": "人格设定",
   "data": "数据与日志",
+  "analysis": "数据分析",
   "dataTabs": {
     "statistics": "统计",
     "conversations": "对话",
