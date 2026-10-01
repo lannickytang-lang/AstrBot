@@ -535,12 +535,28 @@ function sortSystemPluginCommandsFirst(commands: SuggestionCommand[]) {
 }
 
 /** 根据当前输入过滤候选指令 */
+const isClaudeCommand = (cmd: SuggestionCommand) =>
+  cmd.handler_full_name.startsWith("claude:");
+
+/** Claude candidates first; engine/plugin commands follow. */
+function claudeFirst(commands: SuggestionCommand[]) {
+  const claude = commands.filter(isClaudeCommand);
+  const rest = commands.filter((c) => !isClaudeCommand(c));
+  return [...claude, ...rest];
+}
+
 const filteredCommands = computed(() => {
   const text = props.prompt;
   if (!text || !hasWakePrefix(text)) return [];
 
   const query = normalizeCommandSearchText(text);
-  if (!query) return sortSystemPluginCommandsFirst(enabledCommands.value);
+  if (!query) {
+    // Bare "/": only custom Claude skills/scenarios/commands by default;
+    // engine/plugin commands stay hidden until the query matches them.
+    return claudeFirst(
+      enabledCommands.value.filter((c) => isClaudeCommand(c)),
+    );
+  }
 
   const startsWithMatches: SuggestionCommand[] = [];
   const containsMatches: SuggestionCommand[] = [];
@@ -562,10 +578,10 @@ const filteredCommands = computed(() => {
     }
   }
 
-  return [
+  return claudeFirst([
     ...sortSystemPluginCommandsFirst(startsWithMatches),
     ...sortSystemPluginCommandsFirst(containsMatches),
-  ];
+  ]);
 });
 
 const localPrompt = computed({
