@@ -654,17 +654,18 @@ class AnalysisService:
     # ------------------------------------------------------------------
 
     async def export_by_filter(self, payload: dict) -> tuple[str, BytesIO]:
-        """Export conversations matching a filter as CSV or JSONL.
+        """Export conversations matching a filter as CSV, JSONL or JSON.
 
         Args:
-            payload: Filter fields plus ``format`` (``csv`` or ``jsonl``).
+            payload: Filter fields plus ``format`` (``csv``, ``jsonl`` or
+                ``json``).
 
         Returns:
             Tuple of (filename, file bytes ready for streaming).
         """
         file_format = str(payload.get("format") or "csv").lower()
-        if file_format not in ("csv", "jsonl"):
-            raise AnalysisServiceError("导出格式仅支持 csv 或 jsonl")
+        if file_format not in ("csv", "jsonl", "json"):
+            raise AnalysisServiceError("导出格式仅支持 csv、jsonl 或 json")
 
         filter_ = self._parse_filter(payload)
         conversations = await self._fetch_conversations(
@@ -682,7 +683,66 @@ class AnalysisService:
         )
         if file_format == "jsonl":
             return self._export_jsonl(conversations, timestamp, names)
+        if file_format == "json":
+            return self._export_json(conversations, timestamp, names)
         return self._export_csv(conversations, timestamp, names)
+
+    def _export_json(
+        self,
+        conversations: list,
+        timestamp: str,
+        names: dict,
+    ) -> tuple[str, BytesIO]:
+        """Render conversations as one readable JSON document.
+
+        Used by the chat 客服历史 panel: the file is attached to a chat
+        message and read by the Claude engine, so messages are flattened to
+        ``{role, text}`` with injected markers stripped.
+        """
+        records = []
+        for conv in conversations:
+            try:
+                history = json.loads(conv.history) or []
+            except (json.JSONDecodeError, TypeError):
+                history = []
+            messages = []
+            for message in history:
+                role = message.get("role")
+                if role not in ("user", "assistant"):
+                    continue
+                text = self._extract_text(message.get("content"))
+                if "<system" in text:
+                    text = text.split("<system", 1)[0].strip()
+                if text:
+                    messages.append(
+                        {
+                            "role": "客户" if role == "user" else "客服",
+                            "text": text,
+                        }
+                    )
+            customer_id = self._customer_id_of(conv.user_id)
+            records.append(
+                {
+                    "cid": conv.cid,
+                    "customer_id": customer_id,
+                    "customer_name": (names.get(customer_id) or {}).get("nickname")
+                    or "",
+                    "platform_id": conv.platform_id,
+                    "title": conv.title or None,
+                    "created_at": conv.created_at,
+                    "updated_at": conv.updated_at,
+                    "messages": messages,
+                }
+            )
+        document = {
+            "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "count": len(records),
+            "conversations": records,
+        }
+        file_obj = BytesIO(
+            json.dumps(document, ensure_ascii=False, indent=2).encode("utf-8"),
+        )
+        return f"astrbot_history_{timestamp}.json", file_obj
 
     def _export_jsonl(
         self,

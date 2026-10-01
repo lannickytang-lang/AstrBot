@@ -53,7 +53,7 @@ class AnalysisSessionRequest(BaseModel):
 
 
 class AnalysisExportRequest(AnalysisSessionRequest):
-    format: Literal["csv", "jsonl"] = "csv"
+    format: Literal["csv", "jsonl", "json"] = "csv"
 
 
 def get_service(request: Request) -> AnalysisService:
@@ -170,12 +170,19 @@ async def export_analysis_conversations(
         raise
     file_obj.seek(0)
 
+    if filename.endswith(".csv"):
+        media_type = "text/csv"
+    elif filename.endswith(".json"):
+        media_type = "application/json"
+    else:
+        media_type = "application/jsonl"
+
     def iter_file():
         while chunk := file_obj.read(8192):
             yield chunk
 
     return StreamingResponse(
         iter_file(),
-        media_type="text/csv" if filename.endswith(".csv") else "application/jsonl",
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

@@ -62,6 +62,11 @@
             v-for="(file, index) in stagedFiles"
             :key="'file-' + index"
             class="attachment-card file-preview"
+            role="button"
+            tabindex="0"
+            :title="tm('preview.open')"
+            @click="openFilePreview(file)"
+            @keydown.enter="openFilePreview(file)"
           >
             <div
               class="attachment-icon"
@@ -273,6 +278,19 @@
             </template>
             <span>{{ props.tokenUsage?.tooltip }}</span>
           </v-tooltip>
+          <!-- 客服历史: pick past customer conversations as JSON attachment -->
+          <v-btn
+            icon
+            variant="text"
+            class="input-icon-btn"
+            :aria-label="tm('customerHistory.title')"
+            @click="$emit('openCustomerHistory')"
+          >
+            <History :size="18" :stroke-width="1.75" />
+            <v-tooltip activator="parent" location="top">
+              {{ tm("customerHistory.title") }}
+            </v-tooltip>
+          </v-btn>
           <v-btn
             @click="handleRecordClick"
             icon
@@ -315,6 +333,37 @@
         </div>
       </div>
     </div>
+
+    <v-dialog v-model="previewOpen" max-width="760" scrollable>
+      <v-card>
+        <v-card-title class="text-h3 pa-4 pb-0 pl-6 preview-title">
+          {{ previewFile?.original_name }}
+        </v-card-title>
+        <v-card-text class="preview-body">
+          <div v-if="previewLoading" class="preview-state">
+            <v-progress-circular indeterminate size="28" width="3" />
+          </div>
+          <div v-else-if="previewText === null" class="preview-state">
+            {{ tm("preview.unsupported") }}
+          </div>
+          <template v-else>
+            <pre class="preview-pre">{{ previewText }}</pre>
+            <div v-if="previewTruncated" class="preview-truncated">
+              {{ tm("preview.truncated") }}
+            </div>
+          </template>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn variant="text" @click="openPreviewInNewWindow">
+            {{ tm("preview.openInNew") }}
+          </v-btn>
+          <v-spacer />
+          <v-btn variant="text" @click="previewOpen = false">
+            {{ t("core.common.close") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -328,7 +377,7 @@ import {
   onBeforeUnmount,
 } from "vue";
 import { useDisplay } from "vuetify";
-import { ArrowUp, CircleStop, Mic, Plus, Square } from "@lucide/vue";
+import { ArrowUp, CircleStop, History, Mic, Plus, Square } from "@lucide/vue";
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { useCustomizerStore } from "@/stores/customizer";
 import { isComposingEnter } from "@/utils/imeInput.mjs";
@@ -415,6 +464,7 @@ const emit = defineEmits<{
   fileSelect: [files: FileList | File[]];
   clearReply: [];
   openLiveMode: [];
+  openCustomerHistory: [];
 }>();
 
 const { tm } = useModuleI18n("features/chat");
@@ -425,6 +475,74 @@ const isDark = computed(
 
 const inputField = ref<HTMLTextAreaElement | null>(null);
 const imageInputRef = ref<HTMLInputElement | null>(null);
+
+// Staged-file preview: text-like attachments render inline in a dialog,
+// everything else offers "open in new window" via its blob URL.
+const PREVIEW_TEXT_EXTENSIONS = new Set([
+  "json",
+  "jsonl",
+  "csv",
+  "txt",
+  "md",
+  "log",
+  "xml",
+  "yaml",
+  "yml",
+  "html",
+  "css",
+  "js",
+  "ts",
+  "py",
+  "sql",
+]);
+const PREVIEW_MAX_CHARS = 100_000;
+
+const previewOpen = ref(false);
+const previewLoading = ref(false);
+const previewFile = ref<StagedFileInfo | null>(null);
+const previewText = ref<string | null>("");
+const previewTruncated = ref(false);
+
+function openFilePreview(file: StagedFileInfo) {
+  previewFile.value = file;
+  previewOpen.value = true;
+  previewTruncated.value = false;
+  const ext = file.original_name.split(".").pop()?.toLowerCase() || "";
+  if (!PREVIEW_TEXT_EXTENSIONS.has(ext)) {
+    previewText.value = null;
+    return;
+  }
+  previewLoading.value = true;
+  void (async () => {
+    try {
+      const res = await fetch(file.url);
+      let text = await res.text();
+      if (text.length > PREVIEW_MAX_CHARS) {
+        text = text.slice(0, PREVIEW_MAX_CHARS);
+        previewTruncated.value = true;
+      }
+      if (ext === "json") {
+        // Pretty-print when valid; show raw text otherwise.
+        try {
+          text = JSON.stringify(JSON.parse(text), null, 2);
+        } catch {
+          /* keep raw */
+        }
+      }
+      previewText.value = text;
+    } catch (error) {
+      console.error("Failed to read file preview:", error);
+      previewText.value = null;
+    } finally {
+      previewLoading.value = false;
+    }
+  })();
+}
+
+function openPreviewInNewWindow() {
+  if (previewFile.value) window.open(previewFile.value.url, "_blank");
+}
+
 const providerModelMenuRef = ref<InstanceType<typeof ProviderModelMenu> | null>(
   null,
 );
@@ -1543,5 +1661,43 @@ defineExpose({
     width: 54px;
     flex-basis: 54px;
   }
+}
+
+.attachment-card.file-preview {
+  cursor: pointer;
+}
+
+.preview-title {
+  word-break: break-all;
+}
+.preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.preview-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-size: 13px;
+}
+.preview-pre {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  border-radius: 8px;
+  padding: 14px;
+  max-height: 56vh;
+  overflow-y: auto;
+  margin: 0;
+}
+.preview-truncated {
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 </style>

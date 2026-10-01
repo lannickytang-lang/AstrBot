@@ -249,5 +249,22 @@
     "exit": "退出",
     "partialFailure": "{total} 个对话中有 {failed} 个删除失败",
     "requestFailed": "删除对话失败，请重试。"
+  },
+  "customerHistory": {
+    "title": "客服历史",
+    "subtitle": "筛选客户会话，点击行查看对话记录",
+    "export": "导出 JSON",
+    "exportAll": "范围：全部筛选（{n}）",
+    "exportSelected": "范围：仅勾选（{n}）",
+    "exportHint": "导出的 JSON 会像手动上传一样挂到输入框，可随消息发给 AI 分析",
+    "exportSuccess": "已作为附件添加到输入框，可直接发送",
+    "exportDuplicate": "相同文件已在输入框中",
+    "exportFailed": "导出失败"
+  },
+  "preview": {
+    "open": "点击预览文件",
+    "unsupported": "该文件类型暂不支持在线预览",
+    "openInNew": "在新窗口打开",
+    "truncated": "内容过长，仅显示前 100,000 字符"
   }
 }

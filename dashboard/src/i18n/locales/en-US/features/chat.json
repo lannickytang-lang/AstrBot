@@ -249,5 +249,22 @@
     "exit": "Exit",
     "partialFailure": "{failed} of {total} conversations failed to delete",
     "requestFailed": "Failed to delete conversations. Please try again."
+  },
+  "customerHistory": {
+    "title": "CS History",
+    "subtitle": "Filter customer conversations, click a row to preview the transcript",
+    "export": "Export JSON",
+    "exportAll": "Scope: all filtered ({n})",
+    "exportSelected": "Scope: selected ({n})",
+    "exportHint": "The exported JSON is attached to the composer like a manual upload; send it with a message for AI analysis",
+    "exportSuccess": "Attached to the composer, ready to send",
+    "exportDuplicate": "Identical file is already staged",
+    "exportFailed": "Export failed"
+  },
+  "preview": {
+    "open": "Click to preview file",
+    "unsupported": "Preview is not supported for this file type",
+    "openInNew": "Open in new window",
+    "truncated": "Content too long; showing the first 100,000 characters"
   }
 }

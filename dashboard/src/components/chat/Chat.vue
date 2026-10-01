@@ -264,6 +264,7 @@
             @paste-image="handlePaste"
             @file-select="handleFilesSelected"
             @clear-reply="replyTarget = null"
+            @open-customer-history="customerHistoryOpen = true"
           />
         </section>
       </ProjectView>
@@ -411,6 +412,7 @@
             @paste-image="handlePaste"
             @file-select="handleFilesSelected"
             @clear-reply="replyTarget = null"
+            @open-customer-history="customerHistoryOpen = true"
           />
         </section>
       </div>
@@ -492,6 +494,11 @@
       :project-title="activeProject?.title || ''"
       @update:model-value="chatHeader.SET_WORKSPACE_FILES_OPEN"
     />
+    <CustomerHistoryPanel
+      v-model="customerHistoryOpen"
+      :exporting="historyExporting"
+      @export="handleHistoryExport"
+    />
   </div>
 </template>
 
@@ -518,8 +525,9 @@ import {
   SquarePen,
   Trash2,
 } from "@lucide/vue";
-import { chatApi, providerApi } from "@/api/v1";
+import { chatApi, providerApi, analysisApi } from "@/api/v1";
 import ChatSettingsDialog from "@/components/chat/ChatSettingsDialog.vue";
+import CustomerHistoryPanel from "@/components/chat/CustomerHistoryPanel.vue";
 import ProjectDialog, {
   type ProjectFormData,
 } from "@/components/chat/ProjectDialog.vue";
@@ -621,6 +629,41 @@ const { isDragging, dragEvents } = useDragUpload((files) => {
   if (isProviderWorkspace.value) return;
   handleFilesSelected(files);
 });
+
+// 客服历史 drawer: pick past customer conversations and attach the JSON
+// export to the composer like a manually uploaded file.
+const customerHistoryOpen = ref(false);
+const historyExporting = ref(false);
+
+async function handleHistoryExport(payload: Record<string, unknown>) {
+  if (historyExporting.value) return;
+  historyExporting.value = true;
+  try {
+    const response = await analysisApi.exportByFilter({
+      ...(payload as any),
+      format: "json",
+    });
+    const stamp = new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[-:T]/g, "");
+    const file = new File([response.data], `客服历史_${stamp}.json`, {
+      type: "application/json",
+    });
+    const staged = await processAndUploadFile(file);
+    if (!staged) {
+      toast.warning(tm("customerHistory.exportDuplicate"));
+      return;
+    }
+    customerHistoryOpen.value = false;
+    toast.success(tm("customerHistory.exportSuccess"));
+  } catch (error: any) {
+    console.error("History export failed:", error);
+    toast.error(error?.response?.data?.message || tm("customerHistory.exportFailed"));
+  } finally {
+    historyExporting.value = false;
+  }
+}
 
 type WorkspaceView = "chat" | "providers";
 
