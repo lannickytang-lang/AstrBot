@@ -3,7 +3,7 @@ __pycache__
 .mypy_cache
 .venv*
 .conda/
-uv.lock
+# uv.lock is committed: server builds require --frozen reproducibility
 .coverage
 
 # IDE and editors
