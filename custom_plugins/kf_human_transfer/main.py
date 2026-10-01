@@ -237,10 +237,11 @@ class KfHumanTransferPlugin(Star):
                 resp = await asyncio.to_thread(api.batchget_customer, [customer_id])
                 info_list = resp.get("customer_list", []) or []
                 item = info_list[0] if info_list else {}
+                # nickname/avatar live at the item top level in current KF API
                 info = item.get("customer_info") or {}
                 corp = (info.get("corporation_info") or {}).get("corp_name", "")
-                nickname = info.get("nickname") or corp or ""
-                avatar = info.get("avatar") or ""
+                nickname = item.get("nickname") or info.get("nickname") or corp or ""
+                avatar = item.get("avatar") or info.get("avatar") or ""
                 if nickname or avatar:
                     await db.upsert_kf_customer_profile(customer_id, nickname, avatar)
                     logger.info(

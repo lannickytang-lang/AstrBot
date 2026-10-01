@@ -195,10 +195,12 @@ class AnalysisService:
                 break
             for item in resp.get("customer_list", []) or []:
                 cid = item.get("external_userid")
+                # WeChat KF returns nickname/avatar at the item top level
+                # (older docs show a customer_info wrapper; keep the fallback).
                 info = item.get("customer_info") or {}
                 corp = (info.get("corporation_info") or {}).get("corp_name", "")
-                nickname = info.get("nickname") or corp or ""
-                avatar = info.get("avatar") or ""
+                nickname = item.get("nickname") or info.get("nickname") or corp or ""
+                avatar = item.get("avatar") or info.get("avatar") or ""
                 if not cid:
                     continue
                 try:
