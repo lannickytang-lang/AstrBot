@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml uv.lock .python-version README.md ./
 
 RUN python -m pip install uv -i https://mirrors.cloud.tencent.com/pypi/simple \
-    && uv export --format requirements.txt --output-file requirements.txt --frozen \
+    && uv export --no-emit-project --format requirements.txt --output-file requirements.txt --frozen \
     && uv pip install -r requirements.txt --no-cache-dir --system \
         --index-url https://mirrors.cloud.tencent.com/pypi/simple \
     && uv pip install socksio uv pilk --no-cache-dir --system \
