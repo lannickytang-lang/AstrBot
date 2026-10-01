@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -35,6 +36,11 @@ BRANCH = "dev"
 def run(
     cmd: list[str], *, title: str, cwd: Path | None = None, check: bool = True
 ) -> str:
+    # On Windows, npm-family entrypoints are .cmd shims that CreateProcess
+    # cannot launch directly; resolve through PATH first.
+    resolved = shutil.which(cmd[0])
+    if resolved:
+        cmd = [resolved, *cmd[1:]]
     print(f"\n=== {title}\n$ {' '.join(cmd)}")
     started = time.time()
     result = subprocess.run(
@@ -80,7 +86,9 @@ def do_push_and_tag(ts: str, dry: bool) -> str:
     print(f"deploying commit: {commit}")
     tag = f"deploy/{ts}"
     if dry:
-        print(f"(dry) git tag -f {tag}; git push origin {BRANCH}; git push -f origin {tag}")
+        print(
+            f"(dry) git tag -f {tag}; git push origin {BRANCH}; git push -f origin {tag}"
+        )
         return tag
     run(["git", "tag", "-f", tag], title=f"git tag {tag}")
     run(["git", "push", "origin", BRANCH], title="git push origin dev")
@@ -89,6 +97,9 @@ def do_push_and_tag(ts: str, dry: bool) -> str:
 
 
 def do_frontend_build(dry: bool) -> Path:
+    if dry:
+        print("(dry) pnpm build -> dist/version marker -> tar deploy/dist-build.tar.gz")
+        return DIST_OUT
     run(["pnpm", "build"], title="pnpm build (dashboard)", cwd=DASHBOARD_DIR)
     index = DASHBOARD_DIR / "dist" / "index.html"
     if not index.exists():
