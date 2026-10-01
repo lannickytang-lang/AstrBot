@@ -64,4 +64,8 @@ GenieData/
 .kilocode/
 .worktrees/
 
+# Local deployment artifacts (packaged & built)
+deploy/*.tar.gz
+deploy/staging/
+
 dashboard/bun.lock

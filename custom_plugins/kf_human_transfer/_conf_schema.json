@@ -1,0 +1,27 @@
+{
+  "keywords": {
+    "type": "list",
+    "description": "触发转人工的关键词（消息包含任一关键词即触发）",
+    "default": ["人工", "转人工", "真人服务", "找老板"]
+  },
+  "servicer_userid": {
+    "type": "string",
+    "description": "接待人员的企微 userid（转接目标）",
+    "default": "TangJingShan"
+  },
+  "guide_text": {
+    "type": "text",
+    "description": "转人工成功后回复客户的引导话术",
+    "default": "好的，马上为您转接人工服务，请稍等～"
+  },
+  "auto_recover_hours": {
+    "type": "int",
+    "description": "人工会话无消息多少小时后自动结束（回收给 AI）",
+    "default": 24
+  },
+  "scan_interval_minutes": {
+    "type": "int",
+    "description": "超时回收扫描间隔（分钟，最小 5）",
+    "default": 30
+  }
+}

@@ -1,0 +1,11 @@
+services:
+  yuansheng-astrbot:
+    image: yuansheng-astrbot:1.0.0
+    container_name: yuansheng-astrbot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6185:6185"
+    volumes:
+      - ./data:/AstrBot/data
+    environment:
+      - TZ=Asia/Shanghai
