@@ -16,19 +16,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     git \
     ripgrep \
-    && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY . /AstrBot/
+# Dependency layer comes BEFORE the code copy so that everyday code
+# changes hit the Docker cache here and skip the slow pip install.
+# Only a pyproject.toml / uv.lock change rebuilds this layer.
+COPY pyproject.toml uv.lock .python-version README.md ./
 
 RUN python -m pip install uv \
-    && echo "3.12" > .python-version \
-    && uv lock \
     && uv export --format requirements.txt --output-file requirements.txt --frozen \
     && uv pip install -r requirements.txt --no-cache-dir --system \
     && uv pip install socksio uv pilk --no-cache-dir --system
+
+COPY . /AstrBot/
 
 EXPOSE 6185
 

@@ -18,7 +18,7 @@
   └─ ./server.sh <命令>                 ← 服务器端执行体（也可手动登录单独执行）
        ├─ repo/   git fetch --tags && reset --hard deploy/<tag>（只读拉 GitHub，SSH 443）
        ├─ docker build（增量：依赖层已缓存，改代码约 1~2 分钟）
-       ├─ 备份三件套（db 快照 + dist + 旧镜像 tag，同一时间戳）
+       ├─ 备份两件套（db 快照 + dist，同一时间戳；镜像不备份——回退=按 git tag 重新构建）
        └─ docker compose up -d + 健康检查
 ```
 
@@ -41,7 +41,7 @@
 └─ data/                   # 数据卷（数据库/插件/知识库/场景模板/客户昵称表）
 ```
 
-- 镜像 tag：`yuansheng-astrbot:<时间戳>` + `yuansheng-astrbot:latest` 双标签；**旧 tag 不删**（即回退点），仅保留最近 5 个（`docker image prune` 控量）
+- 镜像 tag：`yuansheng-astrbot:<时间戳>` + `yuansheng-astrbot:latest` 双标签；**旧镜像不作为备份**（保留最近 3 个仅加速回滚构建，超时自动清理）——回退一律按 git tag 重新构建
 - 备份保留最近 5 份，更旧的自动清理
 
 ### 2.1 版本机制：git tag 固化每次部署
@@ -75,7 +75,7 @@ python deploy/deploy.py --dry-run          # 只打印将执行的步骤，不�
 ### 服务器 `./server.sh`（deploy.py 的 ④ 即 ssh 执行它；也可手动用）
 
 ```
-./server.sh deploy <dist.tar.gz路径>   # pull+build+备份+切换+健康检查（dist 可选传 none 表纯后端）
+./server.sh deploy <dist.tar.gz|none> [--tag deploy/<ts>]  # fetch+reset tag+build+备份+切换+健康检查
 ./server.sh status                     # 容器/版本/磁盘/最近部署
 ./server.sh list                       # 列出镜像 tag 与备份时间戳
 ./server.sh rollback <ts> [--with-db]  # 回退
@@ -89,21 +89,22 @@ python deploy/deploy.py --dry-run          # 只打印将执行的步骤，不�
 | ① | 本地检查：工作区干净（有未提交改动则中止）、`git push origin dev` + 打 `deploy/<ts>` 标签并 push | 网络失败重试 1 次，仍失败中止 |
 | ② | 本地 `pnpm build` → 校验 `dist/index.html` 存在 → 写 `assets/version`（必须等于 `astrbot.__version__`，缺失会导致启动时官方 dist 下载覆盖我们的前端）→ tar 打包 | 构建失败中止 |
 | ③ | scp dist 包到服务器 `/tmp/`（约 5MB，秒级） | 失败中止 |
-| ④ | ssh 执行 `server.sh deploy`：`git -C repo fetch --tags + reset --hard deploy/<ts>` → **`docker build`（新时间戳 tag）** → 备份三件套 → 插件目录同步（`repo/custom_plugins/*` → `data/plugins/`，rsync --delete 单插件维度） | build 失败：旧容器未动，直接中止；备份失败中止（宁可不打扰线上） |
+| ④ | ssh 执行 `server.sh deploy`：`git -C repo fetch --tags + reset --hard deploy/<ts>` → **`docker build`（仅当日志 tag）** → 备份两件套 → 插件目录同步（`repo/custom_plugins/*` → `data/plugins/`，rsync --delete 单插件维度） | build 失败：旧容器未动，直接中止；备份失败中止（宁可不打扰线上） |
 | ⑤ | 应用：`data/dist` 原子替换（先解压到 dist.new 再 mv）→ 改写 compose 镜像 tag → `docker compose up -d`（容器重建，停机窗口 ≈ 5 秒） | up 失败：自动执行 rollback 到本时间戳备份 |
 | ⑥ | 健康检查（30 秒内重试 3 次）：容器 `Up`、`127.0.0.1:6185` 探活 200、域名 200、登录+`/api/v1/analysis/scenarios` 冒烟、容器日志无 CRITICAL | 检查失败：打印日志摘要 + 提示回滚命令（不自动回滚，留人工判断） |
 | ⑦ | 摘要输出：时间戳、commit、前后端变更范围、耗时、回退命令提示 | — |
 
 ## 5. 回退机制（核心诉求）
 
-每次部署生成统一时间戳 `ts`（服务器 Asia/Shanghai，格式 `20261001_2330`），三处同戳：
+每次部署生成统一时间戳 `ts`（服务器 Asia/Shanghai，格式 `20261001_2330`）：
 
-- 镜像 tag `yuansheng-astrbot:<ts>`
+- **git 标签 `deploy/<ts>`**（回退的权威锚点——代码可随时按 tag 重新构建）
 - `backups/dist-<ts>.tar.gz`（**该次部署前的**旧 dist）
 - `backups/db-<ts>.db`（**该次部署前的** db 快照）
+- 镜像不备份：rollback 时 `reset --hard deploy/<ts>` + `docker build` 重建（依赖层缓存下 1~2 分钟）
 
 `rollback <ts>` 逻辑：
-1. 加载镜像 `<ts>`（若镜像不在但 dist 备份在，仅回退前端也可）
+1. `reset --hard deploy/<ts>` + 重建镜像（`yuansheng-astrbot:rollback`，tag 备份已弃用）
 2. 恢复 `dist-<ts>`（该备份对应"部署前状态"，即回到那之前）
 3. **数据库默认不动**——代码可以退，客户消息数据绝不丢；旧代码遇到新表（如 kf_customer_profile）不读不报错，安全
 4. `--with-db`：先对当前 db 再做一次快照（保底），再恢复 `db-<ts>`；**执行前强制二次确认**（deploy.py 里交互确认，server.sh 手动模式要求输入 YES）
