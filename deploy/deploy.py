@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import re
 import shutil
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 
@@ -105,19 +107,19 @@ def do_frontend_build(dry: bool) -> Path:
     if not index.exists():
         raise SystemExit("[deploy][ERROR] dist/index.html missing after build")
     # version marker must equal core version or startup pulls upstream dist
-    core_version = (REPO_ROOT / "astrbot" / "__init__.py").read_text(encoding="utf-8")
-    core_version = core_version.split("__version__ = ")[1].strip().strip('"').strip("'")
+    init_text = (REPO_ROOT / "astrbot" / "__init__.py").read_text(encoding="utf-8")
+    match = re.search(r'__version__\s*=\s*"([^"]+)"', init_text)
+    if not match:
+        raise SystemExit("[deploy][ERROR] cannot parse astrbot.__version__")
+    core_version = match.group(1)
     version_file = DASHBOARD_DIR / "dist" / "assets" / "version"
     version_file.parent.mkdir(parents=True, exist_ok=True)
     version_file.write_text(f"v{core_version}", encoding="utf-8")
     print(f"dist version marker: v{core_version}")
-    if dry:
-        return DIST_OUT
-    run(
-        ["tar", "czf", str(DIST_OUT), "."],
-        title="pack dist",
-        cwd=DASHBOARD_DIR / "dist",
-    )
+    # Pack with tarfile: Windows Git-Bash tar misreads `D:\...` as host:path.
+    DIST_OUT.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(DIST_OUT, "w:gz") as tar:
+        tar.add(DASHBOARD_DIR / "dist", arcname=".")
     print(f"dist package: {DIST_OUT} ({DIST_OUT.stat().st_size / 1e6:.1f} MB)")
     return DIST_OUT
 
