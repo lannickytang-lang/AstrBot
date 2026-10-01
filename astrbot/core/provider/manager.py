@@ -475,6 +475,10 @@ class ProviderManager:
                 from .sources.gemini_source import (
                     ProviderGoogleGenAI as ProviderGoogleGenAI,
                 )
+            case "claude_code":
+                from .sources.claude_code_source import (
+                    ClaudeCodeProvider as ClaudeCodeProvider,
+                )
             case "sensevoice_stt_selfhost":
                 from .sources.sensevoice_selfhosted_source import (
                     ProviderSenseVoiceSTTSelfHost as ProviderSenseVoiceSTTSelfHost,
