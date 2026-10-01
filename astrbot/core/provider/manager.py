@@ -255,7 +255,15 @@ class ProviderManager:
                 )
                 provider = self.inst_map.get(provider_id)
                 if not provider:
-                    provider = self.provider_insts[0] if self.provider_insts else None
+                    # claude_code is interactive-only (explicit selection or
+                    # the dashboard chat fallback); never an implicit default,
+                    # so platform bots keep their own provider.
+                    candidates = [
+                        p
+                        for p in self.provider_insts
+                        if p.provider_config.get("type") != "claude_code"
+                    ]
+                    provider = candidates[0] if candidates else None
             elif provider_type == ProviderType.SPEECH_TO_TEXT:
                 provider_id = config["provider_stt_settings"].get("provider_id")
                 if not config["provider_stt_settings"].get("enable"):
