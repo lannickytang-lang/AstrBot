@@ -440,7 +440,11 @@ const claudeCommands = ref<SuggestionCommand[]>([]);
 const showCommandSuggestion = ref(false);
 const selectedCommandIndex = ref(0);
 const commandSuggestionLoading = ref(false);
-const wakePrefixes = ref<string[]>(["/"]);
+// Slash-command menu trigger. Deliberately fixed to "/" and decoupled from
+// the platform wake prefix (server may return e.g. ["AI"] for WeChat, which
+// would otherwise make the menu unreachable in the dashboard chat).
+const MENU_PREFIX = "/";
+const wakePrefixes = ref<string[]>([MENU_PREFIX]);
 const currentConfigId = ref((props.configId as string) || "default");
 
 /** 检查文本是否以任意一个唤醒词前缀开头 */
@@ -671,7 +675,13 @@ function autoResize() {
 
 watch(
   () => props.prompt,
-  () => nextTick(autoResize),
+  () => {
+    nextTick(autoResize);
+    // Re-evaluate the slash menu after the parent propagates the new value:
+    // handleInput fires on the input event when props.prompt is still stale,
+    // so a single "/" would never open the menu.
+    handleInput();
+  },
 );
 
 function handleKeyDown(e: KeyboardEvent) {
@@ -816,10 +826,8 @@ async function fetchCommands() {
     if (res.data.status === "ok") {
       allCommands.value = res.data.data.items || [];
       // 读取当前配置的唤醒词列表，用于指令候选的触发前缀
-      const prefixes: string[] = res.data.data.wake_prefix || [];
-      if (prefixes && prefixes.length > 0) {
-        wakePrefixes.value = prefixes;
-      }
+      // Menu trigger stays "/"; server wake prefix (e.g. ["AI"] for
+      // WeChat) must not hijack the dashboard command menu.
     }
   } catch (err) {
     // 静默失败，不影响聊天功能
