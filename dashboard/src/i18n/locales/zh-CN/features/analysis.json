@@ -33,8 +33,8 @@
     "messages": "{n} 条消息",
     "customer": "客户",
     "bot": "客服",
-    "copyId": "点击复制客户ID（转人工指令使用）",
-    "copyIdDone": "已复制客户ID",
+    "copyId": "点击选中名称，按 Ctrl+C（手机长按）复制",
+    "copyIdDone": "已选中，按 Ctrl+C 复制",
     "copyHint": "已选中客户ID，按 Ctrl+C（手机长按）复制"
   },
   "actions": {

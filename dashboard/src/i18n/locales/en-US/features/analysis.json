@@ -33,8 +33,8 @@
     "messages": "{n} messages",
     "customer": "Customer",
     "bot": "Bot",
-    "copyId": "Click to copy customer ID (used by transfer command)",
-    "copyIdDone": "Customer ID copied",
+    "copyId": "Click to select, then Ctrl+C (or long-press) to copy",
+    "copyIdDone": "Selected; press Ctrl+C to copy",
     "copyHint": "Customer ID selected; press Ctrl+C (or long-press) to copy"
   },
   "actions": {

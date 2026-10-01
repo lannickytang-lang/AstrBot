@@ -33,8 +33,8 @@
     "messages": "{n} 件のメッセージ",
     "customer": "顧客",
     "bot": "Bot",
-    "copyId": "クリックで顧客IDをコピー",
-    "copyIdDone": "顧客IDをコピーしました",
+    "copyId": "クリックで選択、Ctrl+C（長押し）でコピー",
+    "copyIdDone": "選択済み、Ctrl+C でコピー",
     "copyHint": "顧客IDを選択しました。Ctrl+C（長押し）でコピー"
   },
   "actions": {

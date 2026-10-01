@@ -148,7 +148,7 @@
                     <input
                       id="id-copy-input"
                       class="id-copy-input"
-                      :value="conv.customerId"
+                      :value="copyingText"
                       readonly
                       @blur="copyingKey = ''"
                     />
@@ -157,7 +157,7 @@
                     v-else
                     class="conv-name"
                     :title="tm('record.copyId')"
-                    @click.stop="startIdCopy(conv.key)"
+                    @click.stop="startIdCopy(conv.key, conv.nickname || conv.customerId)"
                   >
                     {{ conv.nickname || conv.customerId }}
                   </span>
@@ -205,7 +205,7 @@
                 <input
                   id="id-copy-input"
                   class="id-copy-input"
-                  :value="picked.customerId"
+                  :value="copyingText"
                   readonly
                   @blur="copyingKey = ''"
                 />
@@ -215,7 +215,7 @@
                 class="panel-badge"
                 :title="tm('record.copyId')"
                 style="cursor: pointer"
-                @click="startIdCopy('picked')"
+                @click="startIdCopy('picked', picked.nickname || picked.customerId)"
               >
                 {{ picked.nickname || picked.customerId }}
               </span>
@@ -537,9 +537,11 @@ async function applyCustomerNames() {
 // clipboard focus, so instead of a clipboard API we reveal the customer ID
 // inside a pre-selected input — Ctrl+C / long-press copies it everywhere.
 const copyingKey = ref("");
+const copyingText = ref("");
 
-function startIdCopy(key: string) {
+function startIdCopy(key: string, displayText: string) {
   copyingKey.value = key;
+  copyingText.value = displayText;
   notify(tm("record.copyHint"));
   nextTick(() => {
     const input = document.getElementById("id-copy-input");
