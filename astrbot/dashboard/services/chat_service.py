@@ -1257,6 +1257,19 @@ class ChatService:
         message = post_data.get("message", post_data.get("files", []))
         session_id = post_data.get("session_id", post_data.get("conversation_id"))
         selected_provider = post_data.get("selected_provider")
+        if not selected_provider:
+            # Dashboard chat defaults to the Claude Code engine when one is
+            # enabled; explicit selections always win. wecom/platform bots do
+            # not go through this service, so they are unaffected.
+            for p_inst in self.core_lifecycle.provider_manager.provider_insts:
+                inst_cfg = getattr(p_inst, "provider_config", None) or {}
+                if (
+                    inst_cfg.get("type") == "claude_code"
+                    and inst_cfg.get("enable", True)
+                    and inst_cfg.get("id")
+                ):
+                    selected_provider = str(inst_cfg["id"])
+                    break
         selected_model = post_data.get("selected_model")
         flags = resolve_webchat_request_flags(post_data)
         platform_history_id = post_data.get("_platform_history_id") or "webchat"
