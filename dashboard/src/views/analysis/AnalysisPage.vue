@@ -521,9 +521,10 @@ function parseMessages(historyText: unknown): RecordMessage[] {
 }
 
 function extractText(content: unknown): string {
-  if (typeof content === "string") return content.trim();
-  if (Array.isArray(content)) {
-    return content
+  let text = "";
+  if (typeof content === "string") text = content.trim();
+  else if (Array.isArray(content)) {
+    text = content
       .filter(
         (p: any) =>
           (p?.type === "text" || p?.type === "plain") && typeof p?.text === "string",
@@ -532,7 +533,12 @@ function extractText(content: unknown): string {
       .join("\n")
       .trim();
   }
-  return "";
+  // System reminders may be appended to user messages; strip everything
+  // from the first injected marker onward.
+  if (text.includes("<system")) {
+    text = text.split("<system", 1)[0].trim();
+  }
+  return text;
 }
 
 async function loadScenarios() {
@@ -637,6 +643,7 @@ onMounted(async () => {
 .analysis-container {
   padding: 20px 24px 28px;
   max-width: 1600px;
+  margin: 0 auto;
 }
 .page-head {
   display: flex;
