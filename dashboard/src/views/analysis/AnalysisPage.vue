@@ -161,12 +161,6 @@
                   >
                     {{ conv.nickname || conv.customerId }}
                   </span>
-                  <span
-                    v-if="conv.nickname"
-                    class="conv-id"
-                  >
-                    {{ shortId(conv.customerId) }}
-                  </span>
                   <span class="conv-msgs">
                     {{ tm('list.messages', { n: conv.messageCount }) }}
                   </span>
@@ -537,10 +531,6 @@ async function applyCustomerNames() {
     // Name resolution is best effort; fall back to raw customer IDs.
     console.warn("Failed to load customer names:", error);
   }
-}
-
-function shortId(id: string) {
-  return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
 }
 
 // Embedded webviews (e.g. the desktop app browser pane) often deny
