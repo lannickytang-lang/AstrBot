@@ -153,9 +153,7 @@
                   </span>
                   <span
                     v-if="conv.nickname"
-                    class="conv-id mono-link"
-                    :title="tm('record.copyId')"
-                    @click.stop="copyCustomerId(conv.customerId)"
+                    class="conv-id"
                   >
                     {{ shortId(conv.customerId) }}
                   </span>
@@ -210,9 +208,6 @@
               <span
                 v-if="picked.nickname"
                 class="panel-badge mono"
-                :title="tm('record.copyId')"
-                style="cursor: pointer"
-                @click="copyCustomerId(picked.customerId)"
               >
                 {{ picked.customerId }}
               </span>
@@ -535,12 +530,31 @@ function shortId(id: string) {
 }
 
 async function copyCustomerId(customerId: string) {
+  // navigator.clipboard only exists in secure contexts; the dashboard may be
+  // served over plain http, so fall back to execCommand.
+  let copied = false;
   try {
     await navigator.clipboard.writeText(customerId);
-    notify(tm("record.copyIdDone"));
+    copied = true;
   } catch {
-    notify(customerId);
+    copied = false;
   }
+  if (!copied) {
+    const helper = document.createElement("textarea");
+    helper.value = customerId;
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.select();
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+    document.body.removeChild(helper);
+  }
+  if (copied) notify(tm("record.copyIdDone"));
+  else notify(customerId);
 }
 
 function scheduleFetch() {
@@ -735,7 +749,7 @@ onMounted(async () => {
   min-height: 100vh;
 }
 .analysis-container {
-  padding: 20px 24px 28px;
+  padding: 16px 16px 24px 0;
 }
 .page-head {
   display: flex;
@@ -964,14 +978,6 @@ onMounted(async () => {
   white-space: nowrap;
 }
 .conv-name:hover {
-  color: rgb(var(--v-theme-primary));
-}
-.mono-link {
-  cursor: pointer;
-  opacity: 0.75;
-}
-.mono-link:hover {
-  opacity: 1;
   color: rgb(var(--v-theme-primary));
 }
 .conv-id {
