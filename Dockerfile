@@ -1,6 +1,10 @@
 FROM python:3.12-slim
 WORKDIR /AstrBot
 
+# The container runs as root; Claude Code CLI refuses --dangerously-skip-permissions
+# for root users unless it knows it is inside an isolated sandbox.
+ENV IS_SANDBOX=1
+
 # Tencent Cloud internal mirrors: apt/pypi throughput from the VPS is 10-50x
 # faster than the official endpoints; harmless elsewhere (fallback to public
 # mirror domains that also resolve outside Tencent Cloud).
@@ -53,6 +57,6 @@ RUN npm install -g --registry=https://registry.npmmirror.com @anthropic-ai/claud
 CMD mkdir -p /root/.claude /AstrBot/data/skills \
     && { [ -f /root/.claude.json ] || printf '{"hasCompletedOnboarding":true,"theme":"dark"}' > /root/.claude.json; } \
     && ln -sfn /AstrBot/data/skills /root/.claude/skills \
-    && python main.py
+    && exec python main.py
 
 EXPOSE 6185
