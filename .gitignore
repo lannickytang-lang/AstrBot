@@ -69,3 +69,7 @@ deploy/*.tar.gz
 deploy/staging/
 
 dashboard/bun.lock
+
+# zcode session state
+.omc/sessions/
+.omc/project-memory.json
