@@ -4457,6 +4457,16 @@ paths:
         "200":
           description: Exported conversation data
 
+  /api/v1/analysis/claude-commands:
+    get:
+      tags: [Analysis]
+      summary: Slash-command candidates for the Claude engine
+      operationId: listAnalysisClaudeCommands
+      x-astrbot-scope: data
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+
   /api/v1/analysis/customer-names:
     get:
       tags: [Analysis]

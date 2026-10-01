@@ -69,3 +69,9 @@ deploy/*.tar.gz
 deploy/staging/
 
 dashboard/bun.lock
+
+# Local engine test logs & session state
+cc_*.log
+.omc/sessions/
+.omc/state/
+.omc/project-memory.json

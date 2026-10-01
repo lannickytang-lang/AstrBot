@@ -59,7 +59,9 @@ class ClaudeCodeProvider(Provider):
         self.agent_cwd = str(provider_config.get("cwd") or get_astrbot_data_path())
         self.timeout = int(provider_config.get("timeout") or 900)
         # strict: unlisted tools auto-deny; open (default): bypass + deny-list only.
-        self.strict_mode = str(provider_config.get("permission_mode") or "open").lower() == "strict"
+        self.strict_mode = (
+            str(provider_config.get("permission_mode") or "open").lower() == "strict"
+        )
         self.model = str(provider_config.get("model") or "").strip() or None
         self.enable_stream = provider_settings.get("enable_stream", True)
         deny_rules = provider_config.get("deny_rules") or DEFAULT_DENY_RULES
@@ -419,6 +421,34 @@ class ClaudeCodeProvider(Provider):
         message = self._latest_user_text(prompt, contexts)
         if not message:
             raise Exception("claude_code 提供商未收到任何用户消息内容")
+        if message.split("<system", 1)[0].strip() == "/help":
+            # Local answer, no engine spawn.
+            scenarios = self._load_scenarios()
+            lines = [
+                "可用命令：",
+                "",
+                "/help — 显示本帮助",
+                "/clear — 开启新会话（输入框处理）",
+            ]
+            lines += [
+                f"/{s.get('name')} — {s.get('description') or s.get('name')}"
+                for s in scenarios
+            ]
+            lines += [
+                "",
+                "提示：分析类问题可直接用自然语言描述（按工作目录 CLAUDE.md 的指南调接口取数）。",
+                "删除类命令会被系统拦截。",
+            ]
+            text = "\n".join(lines)
+            chunk = LLMResponse("assistant", is_chunk=True)
+            chunk.completion_text = text
+            chunk.result_chain = MessageChain(chain=[Comp.Plain(text)])
+            yield chunk
+            response = LLMResponse("assistant")
+            response.completion_text = text
+            response.result_chain = MessageChain().message(text)
+            yield response
+            return
         scenario, rest = self._match_scenario(message)
         if scenario:
             scope = rest or "（用户未补充范围，按场景默认执行）"

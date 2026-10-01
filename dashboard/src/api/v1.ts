@@ -1916,6 +1916,13 @@ export interface AnalysisSessionResult {
 }
 
 export const analysisApi = {
+  claudeCommands() {
+    return typed<{
+      scenarios: Array<{ name: string; icon: string; description: string }>;
+      skills: Array<{ name: string; description: string }>;
+      commands: Array<{ name: string; description: string }>;
+    }>(openApiV1.listAnalysisClaudeCommands());
+  },
   customerNames(ids: string[]) {
     return typed<Record<string, { nickname: string; avatar: string }>>(
       openApiV1.getAnalysisCustomerNames({
