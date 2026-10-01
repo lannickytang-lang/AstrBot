@@ -136,6 +136,21 @@ git branch -d release/4.25.0
 git push origin --delete release/4.25.0
 ```
 
+## Server deployment (yuansheng fork)
+
+This working copy is deployed to the production VPS (yuansheng.tudodo.vip, container `yuansheng-astrbot`). **Whenever you need to update the server, read [deploy/DEPLOY.md](deploy/DEPLOY.md) first and follow it** — it is the authoritative deployment guide covering the pipeline architecture, the `python deploy/deploy.py` commands, backups and rollback via `deploy/<ts>` git tags, and the operations red lines (never commit or transfer the `data/` volume, never `docker save`+scp full images, never hand-edit `/root/apps/yuansheng-astrbot/repo/`, never manage the WeChat-KF account on kf.weixin.qq.com).
+
+Quick reference (details in DEPLOY.md):
+
+```bash
+python deploy/deploy.py                  # full deploy: push + tag → dashboard build → server build + backup + update + health check
+python deploy/deploy.py --frontend-only  # dashboard dist only, no container restart
+python deploy/deploy.py --list           # deployment history
+python deploy/deploy.py --rollback <ts>  # roll back to a previous deployment
+```
+
+Do not update the server through ad-hoc means (manual `scp` of images or files, hand-editing server-side code). Always go through `deploy/deploy.py`, or run `server.sh` on the VPS exactly as documented.
+
 ## Local secondary development (customization)
 
 This working copy is a customized fork for local secondary development. Before making any changes, read [CUSTOM_DEV_GUIDE.md](CUSTOM_DEV_GUIDE.md) for the remote layout (`upstream`/`origin`), branch policy, upstream sync workflow, and the log of local customizations. Do not push to `upstream`.
