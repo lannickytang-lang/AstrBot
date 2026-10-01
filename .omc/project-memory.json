@@ -1,0 +1,398 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1790872635306,
+  "projectRoot": "D:\\tjs\\tys\\AstrBot",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml",
+          "requirements.txt"
+        ]
+      },
+      {
+        "name": "C/C++",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "Makefile"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "fastapi",
+        "version": null,
+        "category": "backend"
+      },
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": "pip",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "make build",
+    "testCommand": "make test",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "astrbot": {
+      "path": "astrbot",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1790872635273,
+      "keyFiles": [
+        "__init__.py"
+      ]
+    },
+    "changelogs": {
+      "path": "changelogs",
+      "purpose": null,
+      "fileCount": 206,
+      "lastAccessed": 1790872635274,
+      "keyFiles": [
+        "unreleased.md",
+        "v3.4.0.md",
+        "v3.4.1.md",
+        "v3.4.10.md",
+        "v3.4.11.md"
+      ]
+    },
+    "custom_plugins": {
+      "path": "custom_plugins",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1790872635275,
+      "keyFiles": []
+    },
+    "dashboard": {
+      "path": "dashboard",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1790872635276,
+      "keyFiles": [
+        "env.d.ts",
+        "index.html",
+        "LICENSE",
+        "package.json",
+        "pnpm-lock.yaml"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 11,
+      "lastAccessed": 1790872635277,
+      "keyFiles": [
+        "analysis_scenarios.json",
+        "claude_session_map.json",
+        "cmd_config.json",
+        "cmd_config.json.bak-cc",
+        "dashboard.zip"
+      ]
+    },
+    "deploy": {
+      "path": "deploy",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1790872635277,
+      "keyFiles": [
+        "chats_20261001.csv",
+        "DEPLOY.md",
+        "deploy.py",
+        "DEPLOY_GUIDE.md",
+        "docker-compose.yml"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1790872635278,
+      "keyFiles": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "README.md",
+        "vercel.json",
+        "wrangler.toml"
+      ]
+    },
+    "k8s": {
+      "path": "k8s",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1790872635278,
+      "keyFiles": []
+    },
+    "kb_docs": {
+      "path": "kb_docs",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1790872635279,
+      "keyFiles": [
+        "01-门店信息与营业时间.md",
+        "02-课程体系与收费标准.md",
+        "03-乐器销售与租赁.md",
+        "04-售后保养与常见问题FAQ.md",
+        "README.md"
+      ]
+    },
+    "kb_docs_yuansheng": {
+      "path": "kb_docs_yuansheng",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1790872635279,
+      "keyFiles": [
+        "01-门店与团购总览.md",
+        "02a-乐器培训课程团购一.md",
+        "02b-乐器培训课程团购二.md",
+        "03-保养与安装服务.md",
+        "04-预约使用与退款规则.md"
+      ]
+    },
+    "openspec": {
+      "path": "openspec",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1790872635279,
+      "keyFiles": [
+        "config.yaml",
+        "openapi-v1.yaml"
+      ]
+    },
+    "samples": {
+      "path": "samples",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1790872635280,
+      "keyFiles": [
+        "stt_health_check.wav"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 7,
+      "lastAccessed": 1790872635280,
+      "keyFiles": [
+        "astrbot.service",
+        "hatch_build.py",
+        "prepare_release.py",
+        "pr_test_env.sh",
+        "run_pytests_ci.sh"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 108,
+      "lastAccessed": 1790872635281,
+      "keyFiles": [
+        "conftest.py",
+        "test_agent_runner_media_resolver.py",
+        "test_anthropic_kimi_code_provider.py",
+        "test_anthropic_source.py",
+        "test_api_key_open_api.py"
+      ]
+    },
+    "typings": {
+      "path": "typings",
+      "purpose": "Type definitions",
+      "fileCount": 0,
+      "lastAccessed": 1790872635281,
+      "keyFiles": []
+    },
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1790872635283,
+      "keyFiles": [
+        "runtime_bootstrap.cpython-312.pyc"
+      ]
+    },
+    "astrbot\\api": {
+      "path": "astrbot\\api",
+      "purpose": "API routes",
+      "fileCount": 4,
+      "lastAccessed": 1790872635284,
+      "keyFiles": [
+        "all.py",
+        "message_components.py",
+        "web.py"
+      ]
+    },
+    "astrbot\\utils": {
+      "path": "astrbot\\utils",
+      "purpose": "Utility functions",
+      "fileCount": 2,
+      "lastAccessed": 1790872635285,
+      "keyFiles": [
+        "http_ssl_common.py",
+        "__init__.py"
+      ]
+    },
+    "dashboard\\data": {
+      "path": "dashboard\\data",
+      "purpose": "Data files",
+      "fileCount": 2,
+      "lastAccessed": 1790872635287,
+      "keyFiles": [
+        "cmd_config.json",
+        "data_v4.db"
+      ]
+    },
+    "dashboard\\dist": {
+      "path": "dashboard\\dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 4,
+      "lastAccessed": 1790872635287,
+      "keyFiles": [
+        "favicon.svg",
+        "index.html",
+        "robots.txt"
+      ]
+    },
+    "dashboard\\node_modules": {
+      "path": "dashboard\\node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 2,
+      "lastAccessed": 1790872635287,
+      "keyFiles": []
+    },
+    "data\\config": {
+      "path": "data\\config",
+      "purpose": "Configuration files",
+      "fileCount": 0,
+      "lastAccessed": 1790872635288,
+      "keyFiles": []
+    },
+    "docs\\public": {
+      "path": "docs\\public",
+      "purpose": "Public files",
+      "fileCount": 8,
+      "lastAccessed": 1790872635289,
+      "keyFiles": [
+        "404-seio.png",
+        "install.ps1",
+        "install.sh"
+      ]
+    },
+    "docs\\scripts": {
+      "path": "docs\\scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 5,
+      "lastAccessed": 1790872635289,
+      "keyFiles": [
+        "sync_docs_to_wiki.py",
+        "update_openapi_json.py",
+        "upload-doc-images-to-r2.sh"
+      ]
+    },
+    "docs\\tests": {
+      "path": "docs\\tests",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1790872635289,
+      "keyFiles": [
+        "test_sync_docs_to_wiki.py"
+      ]
+    },
+    "tests\\fixtures": {
+      "path": "tests\\fixtures",
+      "purpose": "Test fixtures",
+      "fileCount": 2,
+      "lastAccessed": 1790872635291,
+      "keyFiles": [
+        "helpers.py",
+        "__init__.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "data",
+      "accessCount": 4,
+      "lastAccessed": 1790873545120,
+      "type": "directory"
+    },
+    {
+      "path": "data/data_v4.db",
+      "accessCount": 3,
+      "lastAccessed": 1790873513305,
+      "type": "directory"
+    },
+    {
+      "path": "data/data_v4.db-wal",
+      "accessCount": 3,
+      "lastAccessed": 1790873544532,
+      "type": "directory"
+    },
+    {
+      "path": "data/knowledge_base/a0546ada-8a6f-401d-ae3a-c24795d6bac8/doc.db",
+      "accessCount": 2,
+      "lastAccessed": 1790873533952,
+      "type": "directory"
+    },
+    {
+      "path": "data/analysis_scenarios.json",
+      "accessCount": 1,
+      "lastAccessed": 1790873475817,
+      "type": "file"
+    },
+    {
+      "path": "data/skills/高意向客户挖掘/SKILL.md",
+      "accessCount": 1,
+      "lastAccessed": 1790873479546,
+      "type": "file"
+    },
+    {
+      "path": "data/mcp_server.json",
+      "accessCount": 1,
+      "lastAccessed": 1790873508014,
+      "type": "file"
+    },
+    {
+      "path": "data/claude_session_map.json",
+      "accessCount": 1,
+      "lastAccessed": 1790873508256,
+      "type": "file"
+    },
+    {
+      "path": "data/knowledge_base/kb.db-wal",
+      "accessCount": 1,
+      "lastAccessed": 1790873534333,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}
