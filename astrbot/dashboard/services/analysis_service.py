@@ -248,6 +248,66 @@ class AnalysisService:
     async def list_scenarios(self) -> list[dict]:
         return self._read_scenarios()
 
+    async def list_claude_commands(self) -> dict:
+        """Aggregate slash-command candidates for the Claude engine.
+
+        Returns:
+            ``{"scenarios": [...], "skills": [...], "commands": [...]}`` —
+            analysis scenarios, SKILL.md skills (data/skills merged with the
+            user's ~/.claude/skills), and ~/.claude/commands/*.md custom
+            prompts. Feeds the chat input autocomplete menu.
+        """
+        scenarios = [
+            {
+                "name": str(s.get("name") or ""),
+                "icon": str(s.get("icon") or ""),
+                "description": str(s.get("description") or ""),
+            }
+            for s in self._read_scenarios()
+            if s.get("name")
+        ]
+
+        def _frontmatter_description(path: Path) -> str:
+            try:
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line.startswith("description:"):
+                        return line.split(":", 1)[1].strip()
+                return ""
+            except OSError:
+                return ""
+
+        skill_dirs: dict[str, str] = {}
+        for base in (
+            Path(get_astrbot_data_path()) / "skills",
+            Path.home() / ".claude" / "skills",
+        ):
+            if not base.is_dir():
+                continue
+            for d in base.iterdir():
+                if not d.is_dir() or d.name in skill_dirs:
+                    continue
+                skill_md = d / "SKILL.md"
+                if skill_md.is_file():
+                    skill_dirs[d.name] = _frontmatter_description(skill_md)
+        skills = [
+            {"name": name, "description": desc}
+            for name, desc in sorted(skill_dirs.items())
+        ]
+
+        commands: list[dict] = []
+        claude_commands_dir = Path.home() / ".claude" / "commands"
+        if claude_commands_dir.is_dir():
+            for md in sorted(claude_commands_dir.glob("*.md")):
+                commands.append(
+                    {
+                        "name": md.stem,
+                        "description": _frontmatter_description(md),
+                    }
+                )
+
+        return {"scenarios": scenarios, "skills": skills, "commands": commands}
+
     async def create_scenario(self, payload: dict) -> dict:
         name = str(payload.get("name") or "").strip()
         instruction = str(payload.get("instruction") or "").strip()

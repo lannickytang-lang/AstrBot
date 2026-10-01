@@ -67,6 +67,15 @@ async def _run(operation):
         raise ApiError(str(exc)) from exc
 
 
+@router.get("/analysis/claude-commands")
+async def list_claude_commands(
+    _auth: AuthContext = Depends(require_data_scope),
+    service: AnalysisService = Depends(get_service),
+):
+    """Slash-command candidates for the Claude engine autocomplete menu."""
+    return await _run(service.list_claude_commands)
+
+
 @router.get("/analysis/customer-names")
 async def get_customer_names(
     ids: str = Query(default=""),

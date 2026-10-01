@@ -3414,6 +3414,10 @@ export type ExportConversationsResponse = (unknown);
 
 export type ExportConversationsError = unknown;
 
+export type ListAnalysisClaudeCommandsResponse = (SuccessEnvelope);
+
+export type ListAnalysisClaudeCommandsError = unknown;
+
 export type GetAnalysisCustomerNamesData = {
     query: {
         /**

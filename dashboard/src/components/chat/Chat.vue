@@ -1325,6 +1325,14 @@ async function selectSession(sessionId: string, pushRoute = true) {
 async function sendCurrentMessage() {
   if (!canSend.value) return;
 
+  const rawText = draft.value.trim();
+  if (rawText === "/clear") {
+    // Claude-Code-style /clear: start a fresh conversation.
+    draft.value = "";
+    await startNewChat();
+    return;
+  }
+
   sending.value = true;
   try {
     let sessionId = currSessionId.value;

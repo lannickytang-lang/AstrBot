@@ -1512,13 +1512,21 @@ CONFIG_METADATA_2 = {
                         "timeout": 900,
                         "deny_rules": [
                             "Bash(rm:*)",
+
+                            "Bash(rm -rf:*)",
+
                             "Bash(del:*)",
+
                             "Bash(rmdir:*)",
+
                             "Bash(rd:*)",
+
                             "Bash(mkfs*)",
+
                             "Bash(dd:*)",
-                            "Bash(git push:*)",
+
                             "Bash(format:*)",
+
                             "Bash(shred:*)",
                         ],
                         "system_prompt": "",

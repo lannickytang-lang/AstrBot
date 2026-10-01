@@ -332,7 +332,7 @@ import { ArrowUp, CircleStop, Mic, Plus, Square } from "@lucide/vue";
 import { useI18n, useModuleI18n } from "@/i18n/composables";
 import { useCustomizerStore } from "@/stores/customizer";
 import { isComposingEnter } from "@/utils/imeInput.mjs";
-import { commandApi } from "@/api/v1";
+import { analysisApi, commandApi } from "@/api/v1";
 import type { CommandItem } from "@/components/extension/componentPanel/types";
 import ConfigSelector from "./ConfigSelector.vue";
 import ProviderModelMenu from "./ProviderModelMenu.vue";
@@ -436,6 +436,7 @@ const longPasteThreshold = 10_000;
 
 // 命令提示相关状态
 const allCommands = ref<CommandItem[]>([]);
+const claudeCommands = ref<SuggestionCommand[]>([]);
 const showCommandSuggestion = ref(false);
 const selectedCommandIndex = ref(0);
 const commandSuggestionLoading = ref(false);
@@ -515,6 +516,13 @@ const enabledCommands = computed(() => {
   }
 
   allCommands.value.forEach(addCommand);
+  // Claude engine candidates: analysis scenarios, skills, custom commands.
+  claudeCommands.value.forEach((cmd) => {
+    if (!seen.has(cmd.effective_command)) {
+      seen.add(cmd.effective_command);
+      result.push(cmd);
+    }
+  });
   return result;
 });
 
@@ -766,6 +774,36 @@ function handleCommandSelect(cmd: SuggestionCommand) {
   });
 }
 
+/** 获取 Claude 引擎的斜杠候选（场景/技能/自定义命令） */
+async function fetchClaudeCommands() {
+  try {
+    const res = await analysisApi.claudeCommands();
+    const data = res.data?.data;
+    if (!data) return;
+    const items: SuggestionCommand[] = [];
+    const push = (name: string, description: string, label: string) => {
+      const name2 = name.trim();
+      if (!name2) return;
+      items.push({
+        handler_full_name: `claude:${name2}`,
+        effective_command: `/${name2}`,
+        description,
+        plugin_display_name: label,
+        enabled: true,
+        reserved: false,
+      });
+    };
+    for (const s of data.scenarios || []) push(s.name, s.description, "Claude 场景");
+    for (const s of data.skills || [])
+      push(s.name, s.description, "Claude 技能");
+    for (const c of data.commands || [])
+      push(c.name, c.description, "Claude 命令");
+    claudeCommands.value = items;
+  } catch {
+    // Autocomplete is best-effort; ignore failures.
+  }
+}
+
 /** 获取指令列表 */
 async function fetchCommands() {
   if (commandSuggestionLoading.value) return;
@@ -894,6 +932,7 @@ function handleConfigChange(payload: {
   if (payload.configId && payload.configId !== currentConfigId.value) {
     currentConfigId.value = payload.configId;
     fetchCommands();
+    fetchClaudeCommands();
   }
 }
 
@@ -913,6 +952,7 @@ onMounted(() => {
   document.addEventListener("keyup", handleKeyUp);
   // 预加载指令列表
   fetchCommands();
+  fetchClaudeCommands();
   nextTick(autoResize);
 });
 

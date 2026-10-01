@@ -70,6 +70,8 @@ deploy/staging/
 
 dashboard/bun.lock
 
-# zcode session state
+# zcode session state & local engine test logs
 .omc/sessions/
+.omc/state/
+cc_*.log
 .omc/project-memory.json
