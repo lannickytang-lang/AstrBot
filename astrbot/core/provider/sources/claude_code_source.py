@@ -26,22 +26,22 @@ from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
 DEFAULT_DENY_RULES = [
     "Bash(rm:*)",
+    "Bash(rm -rf:*)",
     "Bash(del:*)",
     "Bash(rmdir:*)",
     "Bash(rd:*)",
     "Bash(mkfs*)",
     "Bash(dd:*)",
-    "Bash(git push:*)",
     "Bash(format:*)",
     "Bash(shred:*)",
 ]
 
 DEFAULT_SYSTEM_PROMPT = (
-    "你是「缘声琴行」的数据分析助手，运行在店主本人的管理台聊天里。"
-    "工作目录下 data/data_v4.db 是 SQLite 客户数据库（表：conversations 客户会话、"
-    "kf_customer_profile 客户昵称），data/plugins/kf_human_transfer/chat_log.jsonl "
-    "是带时间戳的完整聊天日志。分析需求请实际运行只读命令（sqlite3 / python）查证后再回答，"
-    "引用真实数字。数据库与业务文件一律只读，禁止任何写入、删除或结构变更。"
+    "你是「缘声琴行」店主本人的数据分析助手，运行在管理台聊天里。"
+    "工作目录的 CLAUDE.md 写明了客户数据的获取方式（本机 API + 已配置的 API Key），"
+    "分析前先读它，用 curl 实际取数，引用真实数字。"
+    "如果数据源不存在或为空，用 1-2 条命令快速确认后立即说明并停止，不要深度取证。"
+    "删除类命令会被系统拦截（需要审批，当前版本自动拒绝）。"
     "用简体中文回复，报告要结构化、结论可执行。"
 )
 
@@ -58,6 +58,8 @@ class ClaudeCodeProvider(Provider):
         self.cli_path = str(provider_config.get("cli_path") or "claude")
         self.agent_cwd = str(provider_config.get("cwd") or get_astrbot_data_path())
         self.timeout = int(provider_config.get("timeout") or 900)
+        # strict: unlisted tools auto-deny; open (default): bypass + deny-list only.
+        self.strict_mode = str(provider_config.get("permission_mode") or "open").lower() == "strict"
         self.model = str(provider_config.get("model") or "").strip() or None
         self.enable_stream = provider_settings.get("enable_stream", True)
         deny_rules = provider_config.get("deny_rules") or DEFAULT_DENY_RULES
@@ -196,9 +198,14 @@ class ClaudeCodeProvider(Provider):
             "--output-format",
             "stream-json",
             "--verbose",
-            "--permission-prompts",
-            "none",
         ]
+        if self.strict_mode:
+            # Strict: unlisted tools auto-deny (nothing can prompt in -p mode).
+            command += ["--permission-prompts", "none"]
+        else:
+            # Open (default): allow everything except the deny list. The
+            # disallowed list stays effective under bypass mode.
+            command += ["--dangerously-skip-permissions"]
         if claude_session_id:
             command += ["--resume", claude_session_id]
         for rule in self.disallowed_tools:
