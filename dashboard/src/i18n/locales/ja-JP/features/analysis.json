@@ -34,7 +34,8 @@
     "customer": "顧客",
     "bot": "Bot",
     "copyId": "クリックで顧客IDをコピー",
-    "copyIdDone": "顧客IDをコピーしました"
+    "copyIdDone": "顧客IDをコピーしました",
+    "copyHint": "顧客IDを選択しました。Ctrl+C（長押し）でコピー"
   },
   "actions": {
     "scenario": "分析シナリオ",

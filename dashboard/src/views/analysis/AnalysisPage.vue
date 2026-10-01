@@ -1,5 +1,5 @@
 <template>
-  <v-main class="analysis-page">
+  <div class="analysis-page">
     <div class="analysis-container">
       <!-- Page head -->
       <div class="page-head">
@@ -144,10 +144,20 @@
                     class="cust-ava"
                     referrerpolicy="no-referrer"
                   />
+                  <template v-if="copyingKey === conv.key">
+                    <input
+                      id="id-copy-input"
+                      class="id-copy-input"
+                      :value="conv.customerId"
+                      readonly
+                      @blur="copyingKey = ''"
+                    />
+                  </template>
                   <span
+                    v-else
                     class="conv-name"
                     :title="tm('record.copyId')"
-                    @click.stop="copyCustomerId(conv.customerId)"
+                    @click.stop="startIdCopy(conv.key)"
                   >
                     {{ conv.nickname || conv.customerId }}
                   </span>
@@ -197,19 +207,23 @@
                 class="cust-ava"
                 referrerpolicy="no-referrer"
               />
+              <template v-if="copyingKey === 'picked'">
+                <input
+                  id="id-copy-input"
+                  class="id-copy-input"
+                  :value="picked.customerId"
+                  readonly
+                  @blur="copyingKey = ''"
+                />
+              </template>
               <span
+                v-else
                 class="panel-badge"
                 :title="tm('record.copyId')"
                 style="cursor: pointer"
-                @click="copyCustomerId(picked.customerId)"
+                @click="startIdCopy('picked')"
               >
                 {{ picked.nickname || picked.customerId }}
-              </span>
-              <span
-                v-if="picked.nickname"
-                class="panel-badge mono"
-              >
-                {{ picked.customerId }}
               </span>
             </template>
             <div class="panel-head-right" v-if="picked">
@@ -308,11 +322,11 @@
     <v-snackbar v-model="snackbar.visible" :color="snackbar.color" timeout="3000">
       {{ snackbar.text }}
     </v-snackbar>
-  </v-main>
+</div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { analysisApi, conversationApi } from "@/api/v1";
 import type { AnalysisScenario } from "@/api/v1";
@@ -529,32 +543,24 @@ function shortId(id: string) {
   return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
 }
 
-async function copyCustomerId(customerId: string) {
-  // navigator.clipboard only exists in secure contexts; the dashboard may be
-  // served over plain http, so fall back to execCommand.
-  let copied = false;
-  try {
-    await navigator.clipboard.writeText(customerId);
-    copied = true;
-  } catch {
-    copied = false;
-  }
-  if (!copied) {
-    const helper = document.createElement("textarea");
-    helper.value = customerId;
-    helper.style.position = "fixed";
-    helper.style.opacity = "0";
-    document.body.appendChild(helper);
-    helper.select();
-    try {
-      copied = document.execCommand("copy");
-    } catch {
-      copied = false;
+// Embedded webviews (e.g. the desktop app browser pane) often deny
+// clipboard focus, so instead of a clipboard API we reveal the customer ID
+// inside a pre-selected input — Ctrl+C / long-press copies it everywhere.
+const copyingKey = ref("");
+
+function startIdCopy(key: string) {
+  copyingKey.value = key;
+  notify(tm("record.copyHint"));
+  nextTick(() => {
+    const input = document.getElementById("id-copy-input");
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
     }
-    document.body.removeChild(helper);
-  }
-  if (copied) notify(tm("record.copyIdDone"));
-  else notify(customerId);
+  });
+  window.setTimeout(() => {
+    if (copyingKey.value === key) copyingKey.value = "";
+  }, 8000);
 }
 
 function scheduleFetch() {
@@ -980,6 +986,19 @@ onMounted(async () => {
 .conv-name:hover {
   color: rgb(var(--v-theme-primary));
 }
+.id-copy-input {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  background: rgb(var(--v-theme-primary));
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  outline: none;
+  width: 240px;
+  max-width: 40vw;
+}
+
 .conv-id {
   font-family: Consolas, Monaco, monospace;
   font-size: 12px;

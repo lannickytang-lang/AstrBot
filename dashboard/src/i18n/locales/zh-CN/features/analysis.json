@@ -34,7 +34,8 @@
     "customer": "客户",
     "bot": "客服",
     "copyId": "点击复制客户ID（转人工指令使用）",
-    "copyIdDone": "已复制客户ID"
+    "copyIdDone": "已复制客户ID",
+    "copyHint": "已选中客户ID，按 Ctrl+C（手机长按）复制"
   },
   "actions": {
     "scenario": "分析场景",

@@ -34,7 +34,8 @@
     "customer": "Customer",
     "bot": "Bot",
     "copyId": "Click to copy customer ID (used by transfer command)",
-    "copyIdDone": "Customer ID copied"
+    "copyIdDone": "Customer ID copied",
+    "copyHint": "Customer ID selected; press Ctrl+C (or long-press) to copy"
   },
   "actions": {
     "scenario": "Scenario",
