@@ -13,6 +13,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import subprocess
+import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -239,12 +241,20 @@ class ClaudeCodeProvider(Provider):
             f"chars={len(message)} scenario={bool(scenario)}"
         )
         try:
+            # CREATE_NO_WINDOW: without it every spawn flashes a console
+            # window on Windows when the host itself runs windowless.
+            popen_kwargs = (
+                {"creationflags": subprocess.CREATE_NO_WINDOW}
+                if sys.platform == "win32"
+                else {}
+            )
             proc = await asyncio.create_subprocess_exec(
                 *command,
                 cwd=self.agent_cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
+                **popen_kwargs,
             )
         except FileNotFoundError:
             raise Exception(
