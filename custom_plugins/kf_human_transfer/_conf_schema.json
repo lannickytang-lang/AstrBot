@@ -2,26 +2,56 @@
   "keywords": {
     "type": "list",
     "description": "触发转人工的关键词（消息包含任一关键词即触发）",
-    "default": ["人工", "转人工", "真人服务", "找老板"]
+    "default": [
+      "人工",
+      "转人工",
+      "真人服务",
+      "找老板"
+    ]
   },
   "servicer_userid": {
     "type": "string",
     "description": "接待人员的企微 userid（转接目标）",
     "default": "TangJingShan"
   },
-  "guide_text": {
+  "transfer_pending_text": {
     "type": "text",
-    "description": "转人工成功后回复客户的引导话术",
-    "default": "好的，马上为您转接人工服务，请稍等～"
+    "description": "触发转人工后立即回复客户的提示话术",
+    "default": "正在为您召唤客服（预计 3 分钟内回复），请稍后～"
+  },
+  "human_timeout_seconds": {
+    "type": "int",
+    "description": "人工接待中，客户消息超过多少秒无人回复则自动交回 AI（消除静默）",
+    "default": 180
+  },
+  "waiting_extend_keyword": {
+    "type": "string",
+    "description": "店主打送该关键词可临时延长本轮等待时间",
+    "default": "稍等"
+  },
+  "waiting_extend_seconds": {
+    "type": "int",
+    "description": "发送延长关键词后，本轮等待延长多少秒",
+    "default": 360
+  },
+  "recovery_text": {
+    "type": "text",
+    "description": "超时自动交回 AI 时发给客户的提示话术",
+    "default": "店主暂时不在，可打电话 18807428772 直接联系。小缘继续为您解答～"
+  },
+  "welcome_enable": {
+    "type": "bool",
+    "description": "新客户首次发消息时自动发送欢迎语",
+    "default": true
+  },
+  "welcome_text": {
+    "type": "text",
+    "description": "新客户首次发消息时发送的欢迎语",
+    "default": "欢迎来到缘声琴行～我是智能客服小缘，关于乐器课程、团购、购琴与保养的问题都可以直接问我；需要人工服务随时对我说「转人工」哦～"
   },
   "auto_recover_hours": {
     "type": "int",
-    "description": "人工会话无消息多少小时后自动结束（回收给 AI）",
+    "description": "人工会话无消息多少小时后自动结束（兜底回收给 AI）",
     "default": 24
-  },
-  "scan_interval_minutes": {
-    "type": "int",
-    "description": "超时回收扫描间隔（分钟，最小 5）",
-    "default": 30
   }
 }

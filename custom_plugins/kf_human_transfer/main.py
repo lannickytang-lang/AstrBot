@@ -43,8 +43,8 @@ def _origin_role(origin) -> str:
 @register(
     "astrbot_plugin_kf_human_transfer",
     "yuansheng",
-    "微信客服转人工：关键词/管理台指令转接、人工期间 AI 静默、防回环、超时自动回收、全量聊天记录（含会话页同步）",
-    "0.2.1",
+    "微信客服转人工：关键词/管理台指令转接、人工期间 AI 静默、防回环、无回复超时自动交还 AI、店主随时介入、新客户欢迎语、全量聊天记录",
+    "0.3.0",
 )
 class KfHumanTransferPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig | None = None):
@@ -57,6 +57,13 @@ class KfHumanTransferPlugin(Star):
         self.last_active: dict[str, float] = {}
         # customer_id -> transferred-to-human unix ts
         self.human_since: dict[str, float] = {}
+        # customer_id -> last customer/servicer message unix ts (timeout basis)
+        self.last_customer_msg: dict[str, float] = {}
+        self.last_servicer_msg: dict[str, float] = {}
+        # customer_id -> deadline extension until this unix ts ("稍等")
+        self.extended_until: dict[str, float] = {}
+        # customers that have already received the first-contact welcome
+        self.known_customers: set[str] = set()
         # the single KF account in use, captured from incoming messages
         self.open_kfid = ""
         self._reaper_task: asyncio.Task | None = None
@@ -71,6 +78,8 @@ class KfHumanTransferPlugin(Star):
         # backfill chat log from WeChat's 3-day sync archive on first run
         if not self.chat_log_path.exists():
             self._backfill_task = asyncio.create_task(self._backfill_chat_log())
+        else:
+            self._seed_known_customers()
         self._reaper_task = asyncio.create_task(self._reaper_loop())
         logger.info("[kf_human_transfer] initialized")
 
@@ -91,6 +100,18 @@ class KfHumanTransferPlugin(Star):
     @property
     def servicer_userid(self) -> str:
         return str(self.config.get("servicer_userid", "") or "").strip()
+
+    @property
+    def human_timeout_seconds(self) -> int:
+        return max(30, int(self.config.get("human_timeout_seconds", 180)))
+
+    @property
+    def waiting_extend_seconds(self) -> int:
+        return max(0, int(self.config.get("waiting_extend_seconds", 360)))
+
+    @property
+    def waiting_extend_keyword(self) -> str:
+        return str(self.config.get("waiting_extend_keyword", "稍等") or "").strip()
 
     # ------------------------------------------------------------------
     # WeChat KF API helpers (wechatpy client is sync -> run in thread)
@@ -180,6 +201,16 @@ class KfHumanTransferPlugin(Star):
             self.human_since = {
                 k: float(v) for k, v in data.get("human_since", {}).items()
             }
+            self.last_customer_msg = {
+                k: float(v) for k, v in data.get("last_customer_msg", {}).items()
+            }
+            self.last_servicer_msg = {
+                k: float(v) for k, v in data.get("last_servicer_msg", {}).items()
+            }
+            self.extended_until = {
+                k: float(v) for k, v in data.get("extended_until", {}).items()
+            }
+            self.known_customers = set(data.get("known_customers", []))
             self.open_kfid = data.get("open_kfid", "")
         except FileNotFoundError:
             pass
@@ -193,6 +224,10 @@ class KfHumanTransferPlugin(Star):
                     {
                         "last_active": self.last_active,
                         "human_since": self.human_since,
+                        "last_customer_msg": self.last_customer_msg,
+                        "last_servicer_msg": self.last_servicer_msg,
+                        "extended_until": self.extended_until,
+                        "known_customers": sorted(self.known_customers),
                         "open_kfid": self.open_kfid,
                     },
                     ensure_ascii=False,
@@ -263,6 +298,74 @@ class KfHumanTransferPlugin(Star):
     def _unmark_human(self, customer_id: str):
         self.human_since.pop(customer_id, None)
         self._save_state()
+
+    def _note_customer_msg(self, customer_id: str, ts: float):
+        if customer_id:
+            self.last_customer_msg[customer_id] = ts
+            self._save_state()
+
+    def _note_servicer_msg(self, customer_id: str, ts: float):
+        if customer_id:
+            self.last_servicer_msg[customer_id] = ts
+            self._save_state()
+
+    def _seed_known_customers(self):
+        """Seed the known-customer set from the historical chat log.
+
+        Customers present in chat_log.jsonl have already been served, so the
+        first-contact welcome must not fire for them again.
+        """
+        if not self.chat_log_path.exists():
+            return
+        try:
+            for line in self.chat_log_path.read_text(encoding="utf-8").splitlines():
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if record.get("from") == "customer" and record.get("customer_id"):
+                    self.known_customers.add(record["customer_id"])
+        except OSError as e:
+            logger.warning(f"[kf_human_transfer] seed known customers failed: {e}")
+
+    async def _maybe_welcome(self, customer_id: str):
+        """Send the configurable welcome to a first-time customer (once)."""
+        if not self.config.get("welcome_enable", True):
+            return
+        if not customer_id or customer_id in self.known_customers:
+            return
+        self.known_customers.add(customer_id)
+        self._save_state()
+        text = str(self.config.get("welcome_text", "") or "").strip()
+        if not text:
+            return
+        if await self._send_kf_text(customer_id, text):
+            self._append_log(customer_id, "system", "[新客户欢迎语]", time.time())
+            await self._append_conv_history(customer_id, "assistant", f"[系统] {text}")
+
+    async def _send_kf_text(self, customer_id: str, text: str) -> bool:
+        """Proactively push a text message to the customer via kf/send_msg."""
+        adapter = self._get_adapter()
+        if adapter is None:
+            return False
+        kfid = await self._resolve_kfid()
+        if not kfid:
+            return False
+        try:
+            resp = await asyncio.to_thread(
+                adapter.wechat_kf_api.send_msg, kfid, customer_id, text
+            )
+        except Exception as e:
+            logger.warning(f"[kf_human_transfer] send_msg failed: {e}")
+            return False
+        if resp.get("errcode", 0) != 0:
+            logger.warning(
+                f"[kf_human_transfer] send_msg errcode={resp.get('errcode')} "
+                f"{resp.get('errmsg')}"
+            )
+            return False
+        self._append_log(customer_id, "system", f"[发送] {text}", time.time())
+        return True
 
     def _append_log(self, customer_id: str, from_role: str, text: str, ts: float):
         """Append one message line to the complete chat log (JSONL)."""
@@ -401,9 +504,51 @@ class KfHumanTransferPlugin(Star):
         ts = float(send_time) if send_time else time.time()
         self._append_log(customer_id, _origin_role(origin), text, ts)
 
+        # First-contact welcome for brand-new customers (fires once, never
+        # swallows the message: the AI still answers normally afterwards).
+        if origin == ORIGIN_CUSTOMER:
+            self._note_customer_msg(customer_id, ts)
+            await self._maybe_welcome(customer_id)
+
         # Anti-loopback: servicer replies must never reach the AI, but keep
         # them visible in the dashboard conversation history.
         if origin != ORIGIN_CUSTOMER:
+            if origin == 5:
+                self._note_servicer_msg(customer_id, ts)
+                # "稍等": extend the current wait window
+                kw = self.waiting_extend_keyword
+                if kw and kw in text:
+                    self.extended_until[customer_id] = ts + self.waiting_extend_seconds
+                    self._save_state()
+                    self._append_log(
+                        customer_id,
+                        "system",
+                        f"[稍等] 本轮等待延长 {self.waiting_extend_seconds}s",
+                        ts,
+                    )
+                # Owner interjecting while the AI handles the session:
+                # silently flip back to human mode so the AI goes quiet.
+                if (
+                    origin == 5
+                    and self.servicer_userid
+                    and customer_id not in self.human_since
+                ):
+                    state = await self._get_state(open_kfid, customer_id)
+                    if state is not None and state != STATE_HUMAN:
+                        ok, _m = await self._trans_state(
+                            open_kfid,
+                            customer_id,
+                            STATE_HUMAN,
+                            self.servicer_userid,
+                        )
+                        if ok:
+                            self._mark_human(customer_id)
+                            self._append_log(
+                                customer_id,
+                                "system",
+                                "[店主主动接入→人工接管]",
+                                time.time(),
+                            )
             await self._append_conv_history(customer_id, "assistant", f"[人工] {text}")
             event.stop_event()
             return
@@ -423,7 +568,7 @@ class KfHumanTransferPlugin(Star):
             )
             if ok:
                 self._mark_human(customer_id)
-                guide = str(self.config.get("guide_text", ""))
+                guide = str(self.config.get("transfer_pending_text", "")).strip()
                 self._append_log(customer_id, "system", "[触发转人工]", time.time())
                 if guide:
                     await self._append_conv_history(
@@ -603,12 +748,72 @@ class KfHumanTransferPlugin(Star):
     # ------------------------------------------------------------------
 
     async def _reaper_loop(self):
-        interval_min = max(5, int(self.config.get("scan_interval_minutes", 30)))
+        """Background watchdog ticking every 30s.
+
+        Two duties:
+        1. Unanswered-customer timeout: while a session is in human mode,
+           a customer message left without a servicer reply for
+           human_timeout_seconds hands the session back to the AI with a
+           recovery notice — the customer is never left in silence.
+        2. Total-inactivity recovery (auto_recover_hours) as the last resort.
+        """
         recover_hours = max(1, int(self.config.get("auto_recover_hours", 24)))
         while True:
             try:
-                await asyncio.sleep(interval_min * 60)
+                await asyncio.sleep(30)
                 now = time.time()
+                timeout = self.human_timeout_seconds
+
+                # 1) unanswered-customer timeout (any path into human mode)
+                pending = []
+                for cid, cust_ts in list(self.last_customer_msg.items()):
+                    if cust_ts <= self.last_servicer_msg.get(cid, 0):
+                        continue
+                    deadline = cust_ts + timeout
+                    extended = self.extended_until.get(cid, 0)
+                    if extended > deadline:
+                        deadline = extended
+                    if now > deadline:
+                        pending.append(cid)
+                kfid = ""
+                for cid in pending:
+                    if not kfid:
+                        kfid = await self._resolve_kfid()
+                    if not kfid:
+                        break
+                    state = await self._get_state(kfid, cid)
+                    if state is None:
+                        continue  # transient API failure, retry next tick
+                    if state != STATE_HUMAN:
+                        # human mode already over; timers are stale
+                        self.last_customer_msg.pop(cid, None)
+                        self.last_servicer_msg.pop(cid, None)
+                        self.extended_until.pop(cid, None)
+                        self._save_state()
+                        continue
+                    ok, _msg = await self._trans_state(kfid, cid, STATE_ENDED)
+                    if ok:
+                        recovery = str(
+                            self.config.get("recovery_text", "") or ""
+                        ).strip()
+                        if recovery:
+                            await self._send_kf_text(cid, recovery)
+                            await self._append_conv_history(
+                                cid, "assistant", f"[系统] {recovery}"
+                            )
+                        self._append_log(
+                            cid, "system", "[无回复超时→自动转回AI]", time.time()
+                        )
+                        self._unmark_human(cid)
+                        self.last_customer_msg.pop(cid, None)
+                        self.extended_until.pop(cid, None)
+                        self._save_state()
+                        logger.info(
+                            f"[kf_human_transfer] unanswered timeout: "
+                            f"returned {cid} to AI"
+                        )
+
+                # 2) total-inactivity recovery
                 stale = [
                     cid
                     for cid, since in self.human_since.items()
@@ -616,7 +821,8 @@ class KfHumanTransferPlugin(Star):
                     > recover_hours * 3600
                 ]
                 for cid in stale:
-                    kfid = await self._resolve_kfid()
+                    if not kfid:
+                        kfid = await self._resolve_kfid()
                     if not kfid:
                         break
                     ok, msg = await self._trans_state(kfid, cid, STATE_ENDED)
