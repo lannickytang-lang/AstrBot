@@ -36,7 +36,7 @@
   },
   "recovery_text": {
     "type": "text",
-    "description": "超时自动交回 AI 时发给客户的提示话术",
+    "description": "超时自动交回 AI 时写入 AI 上下文的提示（客户下一条消息由 AI 结合此话术应答）",
     "default": "店主暂时不在，可打电话 18807428772 直接联系。小缘继续为您解答～"
   },
   "welcome_enable": {
@@ -53,5 +53,20 @@
     "type": "int",
     "description": "人工会话无消息多少小时后自动结束（兜底回收给 AI）",
     "default": 24
+  },
+  "notify_owner_enable": {
+    "type": "bool",
+    "description": "超时转回 AI 时推送企微应用消息提醒店主",
+    "default": true
+  },
+  "owner_agentid": {
+    "type": "int",
+    "description": "用于提醒店主的企微自建应用 agentid",
+    "default": 1000002
+  },
+  "owner_userid": {
+    "type": "string",
+    "description": "提醒接收人的企微 userid（留空则用接待人员 userid）",
+    "default": ""
   }
 }

@@ -113,6 +113,13 @@ class KfHumanTransferPlugin(Star):
     def waiting_extend_keyword(self) -> str:
         return str(self.config.get("waiting_extend_keyword", "稍等") or "").strip()
 
+    @property
+    def owner_userid(self) -> str:
+        return (
+            str(self.config.get("owner_userid", "") or "").strip()
+            or self.servicer_userid
+        )
+
     # ------------------------------------------------------------------
     # WeChat KF API helpers (wechatpy client is sync -> run in thread)
     # ------------------------------------------------------------------
@@ -342,6 +349,41 @@ class KfHumanTransferPlugin(Star):
         if await self._send_kf_text(customer_id, text):
             self._append_log(customer_id, "system", "[新客户欢迎语]", time.time())
             await self._append_conv_history(customer_id, "assistant", f"[系统] {text}")
+
+    async def _notify_owner(self, text: str) -> bool:
+        """Push an app message to the owner via the self-built WeCom app.
+
+        Unlike kf/send_msg this works regardless of the KF session state,
+        which makes it the reliable channel for timeout notifications.
+        """
+        adapter = self._get_adapter()
+        if adapter is None:
+            return False
+        agent_id = int(self.config.get("owner_agentid", 1000002) or 0)
+        owner = self.owner_userid
+        if not agent_id or not owner:
+            return False
+        try:
+            resp = await asyncio.to_thread(
+                adapter.wechat_kf_api._post,
+                "message/send",
+                data={
+                    "touser": owner,
+                    "msgtype": "text",
+                    "agentid": agent_id,
+                    "text": {"content": text},
+                },
+            )
+        except Exception as e:
+            logger.warning(f"[kf_human_transfer] notify owner failed: {e}")
+            return False
+        if resp.get("errcode", 0) != 0:
+            logger.warning(
+                f"[kf_human_transfer] notify owner errcode="
+                f"{resp.get('errcode')} {resp.get('errmsg')}"
+            )
+            return False
+        return True
 
     async def _send_kf_text(self, customer_id: str, text: str) -> bool:
         """Proactively push a text message to the customer via kf/send_msg."""
@@ -796,11 +838,15 @@ class KfHumanTransferPlugin(Star):
                         continue
                     ok, _msg = await self._trans_state(kfid, cid, STATE_ENDED)
                     if ok:
+                        # The bot cannot proactively message the customer in
+                        # state 3 or 4 (errcode 95018, platform rule). The
+                        # recovery notice therefore goes into the AI context:
+                        # the customer's next message is answered with this
+                        # information available.
                         recovery = str(
                             self.config.get("recovery_text", "") or ""
                         ).strip()
                         if recovery:
-                            await self._send_kf_text(cid, recovery)
                             await self._append_conv_history(
                                 cid, "assistant", f"[系统] {recovery}"
                             )
@@ -811,6 +857,12 @@ class KfHumanTransferPlugin(Star):
                         self.last_customer_msg.pop(cid, None)
                         self.extended_until.pop(cid, None)
                         self._save_state()
+                        if self.config.get("notify_owner_enable", True):
+                            await self._notify_owner(
+                                f"客户 {cid} 在人工会话中等待超时，"
+                                f"已自动转回 AI 接待。在企微里给该客户发消息"
+                                f"即可随时重新接管。"
+                            )
                         logger.info(
                             f"[kf_human_transfer] unanswered timeout: "
                             f"returned {cid} to AI"
