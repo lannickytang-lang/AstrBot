@@ -7,7 +7,8 @@
 - Type: brownfield（custom_plugins/kf_human_transfer v0.2.x）
 - Generated: 2026-10-02
 - Threshold: 0.2 / Source: default
-- Status: PASSED
+- Status: IMPLEMENTED (v0.3.1, 2026-10-02)
+- Platform discovery: 95018 = bot proactive send forbidden in KF session states 3 AND 4 (hard rule, not a race) — recovery notice delivered via AI context + owner app notification instead
 
 ## 问题（真实场景）
 客户发"转人工"→ state=3 人工接待。若店主没回复、或回复几轮后离开且未点企微"结束会话"：
@@ -48,6 +49,11 @@ AI 中(state≠3)：店主 origin=5 消息到达（=店主主动介入）
 - [ ] 店主离开未点结束 + 客户 2 分钟后追问 → 同第一场景，不再永久静默
 - [ ] 24h 总回收仍生效
 - [ ] 上述全部状态迁移走企微 API 实测
+
+## 实现结果（v0.3.1，deploy 20261002_1148）
+- 已上线：3 分钟超时交还/稍等延长 6 分钟/触发即回召唤提示/恢复话术入 AI 上下文/店主应用通知/零操作接管/新客欢迎语
+- 实测：trans 3→4 自动触发 ✓、衔接话术入上下文 ✓、message/send 通道 ✓（errcode 0）；待用户手机端全场景回归
+- 遗留：欢迎语需新客户实测；95013（会话结束后需客户先发消息才能再转人工）为平台行为
 
 ## 非目标
 - 不做店主端推送提醒（邮件/企微通知均不做）
