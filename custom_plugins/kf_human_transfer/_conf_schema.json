@@ -49,11 +49,6 @@
     "description": "新客户首次发消息时发送的欢迎语",
     "default": "欢迎来到缘声琴行～我是智能客服小缘，关于乐器课程、团购、购琴与保养的问题都可以直接问我；需要人工服务随时对我说「转人工」哦～"
   },
-  "auto_recover_hours": {
-    "type": "int",
-    "description": "人工会话无消息多少小时后自动结束（兜底回收给 AI）",
-    "default": 24
-  },
   "notify_owner_enable": {
     "type": "bool",
     "description": "超时转回 AI 时推送企微应用消息提醒店主",
@@ -68,5 +63,10 @@
     "type": "string",
     "description": "提醒接收人的企微 userid（留空则用接待人员 userid）",
     "default": ""
+  },
+  "auto_recover_minutes": {
+    "type": "int",
+    "description": "人工会话双方多少分钟都无消息后自动结束（兜底回收给 AI；客户开口而店主未回走 3 分钟无回复超时）",
+    "default": 15
   }
 }

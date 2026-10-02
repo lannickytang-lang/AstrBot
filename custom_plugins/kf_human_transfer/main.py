@@ -802,7 +802,7 @@ class KfHumanTransferPlugin(Star):
            recovery notice — the customer is never left in silence.
         2. Total-inactivity recovery (auto_recover_hours) as the last resort.
         """
-        recover_hours = max(1, int(self.config.get("auto_recover_hours", 24)))
+        recover_minutes = max(5, int(self.config.get("auto_recover_minutes", 15)))
         while True:
             try:
                 await asyncio.sleep(30)
@@ -873,7 +873,7 @@ class KfHumanTransferPlugin(Star):
                     cid
                     for cid, since in self.human_since.items()
                     if now - max(since, self.last_active.get(cid, since))
-                    > recover_hours * 3600
+                    > recover_minutes * 60
                 ]
                 for cid in stale:
                     if not kfid:
