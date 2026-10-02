@@ -563,18 +563,21 @@ class KfHumanTransferPlugin(Star):
 
         # Keyword-triggered transfer.
         if text and any(kw in text for kw in self.keywords):
+            # The notice MUST go out BEFORE the transfer: once the session is
+            # in human state (3) the bot is no longer allowed to send and the
+            # reply fails with errcode 95018 (verified in live traffic).
+            guide = str(self.config.get("transfer_pending_text", "")).strip()
+            if guide:
+                if await self._send_kf_text(customer_id, guide):
+                    await self._append_conv_history(
+                        customer_id, "assistant", f"[系统] {guide}"
+                    )
             ok, msg = await self._trans_state(
                 open_kfid, customer_id, STATE_HUMAN, self.servicer_userid
             )
             if ok:
                 self._mark_human(customer_id)
-                guide = str(self.config.get("transfer_pending_text", "")).strip()
                 self._append_log(customer_id, "system", "[触发转人工]", time.time())
-                if guide:
-                    await self._append_conv_history(
-                        customer_id, "assistant", f"[系统] {guide}"
-                    )
-                    await event.send(MessageChain().message(guide))
             else:
                 logger.warning(
                     f"[kf_human_transfer] keyword transfer failed for "
